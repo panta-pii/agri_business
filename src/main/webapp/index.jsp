@@ -1,37 +1,34 @@
-<%-- 
-    Document   : index
-    Created on : Sep 1, 2025, 8:28:48 AM
-    Author     : pantapii36
---%>
-
 <%@page import="java.sql.*"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%
-    // Database connection parameters
     String url = "jdbc:mysql://localhost:3306/agri_business";
-    String username = "root"; // Change as needed
-    String password = ""; // Change as needed
+    String username = "root";
+    String password = "";
 
     Connection conn = null;
     Statement stmt = null;
     ResultSet rs = null;
 
     try {
-        // Load MySQL JDBC Driver
         Class.forName("com.mysql.cj.jdbc.Driver");
-
-        // Establish connection
         conn = DriverManager.getConnection(url, username, password);
-
-        // Create statement
         stmt = conn.createStatement();
-
-        // Execute query to get available products
-        String sql = "SELECT * FROM products WHERE is_available = 1";
-        rs = stmt.executeQuery(sql);
+        rs = stmt.executeQuery("SELECT * FROM products WHERE is_available = 1");
     } catch (Exception e) {
-        out.println("Database connection error: " + e.getMessage());
-        e.printStackTrace();
+        out.println("<p style='color:red'>Database connection error: " + e.getMessage() + "</p>");
+    }
+
+    // Check if user is logged in
+    String userEmail = (String) session.getAttribute("userEmail");
+    String userName = (String) session.getAttribute("userName");
+    boolean isLoggedIn = userEmail != null;
+    String userRole = null;
+
+    if (session != null && session.getAttribute("userEmail") != null) {
+        isLoggedIn = true;
+        userName = (String) session.getAttribute("userName");
+        userEmail = (String) session.getAttribute("userEmail");
+        userRole = (String) session.getAttribute("userRole");
     }
 %>
 
@@ -41,127 +38,497 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>AgriYouth Marketplace</title>
-        <!-- Bootstrap 5 CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/§§§§§§§§§dist/css/bootstrap.min.css" rel="stylesheet">
-        <!-- Font Awesome for icons -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         <style>
-            .product-card {
-                transition: transform 0.2s;
-                height: 100%;
+            :root {
+                --primary-color: #28a745;
+                --primary-dark: #218838;
+                --light-bg: #f8f9fa;
+                --card-shadow: 0 5px 15px rgba(0,0,0,0.08);
+                --hover-shadow: 0 10px 25px rgba(0,0,0,0.15);
             }
-            .product-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background-color: var(--light-bg);
             }
-            .cart-sidebar {
-                width: 320px;
-                transform: translateX(100%);
-                transition: transform 0.3s ease-in-out;
+
+            .navbar-brand {
+                font-weight: 700;
+                font-size: 1.4rem;
             }
-            .cart-sidebar.open {
-                transform: translateX(0);
+
+            .nav-button {
+                margin: 0 5px;
+                border-radius: 6px;
+                transition: all 0.3s ease;
             }
-            .cart-item-img {
-                width: 50px;
-                height: 50px;
-                object-fit: cover;
+
+            .nav-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             }
+
             .hero-section {
-                background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://placehold.co/1200x400/007bff/white?text=AgriYouth+Marketplace');
+                background: linear-gradient(135deg, rgba(40, 100, 69, 0.85), rgba(33, 100, 56, 0.9)), url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80');
                 background-size: cover;
                 background-position: center;
                 color: white;
                 padding: 100px 0;
                 margin-bottom: 30px;
             }
+
+            .product-card {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                height: 100%;
+                border: none;
+                border-radius: 10px;
+                box-shadow: var(--card-shadow);
+            }
+
+            .product-card:hover {
+                transform: translateY(-8px);
+                box-shadow: var(--hover-shadow);
+            }
+
             .product-image {
                 height: 200px;
                 object-fit: cover;
                 width: 100%;
+                border-radius: 10px 10px 0 0;
+            }
+
+            .cart-sidebar {
+                width: 380px;
+                transform: translateX(100%);
+                transition: transform 0.3s ease-in-out;
+                z-index: 1050;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+                background-color: white;
+            }
+
+            .cart-sidebar.open {
+                transform: translateX(0);
+            }
+
+            .cart-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.5);
+                z-index: 1040;
+                display: none;
+            }
+
+            .cart-overlay.active {
+                display: block;
+            }
+
+            .cart-item-img {
+                width: 60px;
+                height: 60px;
+                object-fit: cover;
+                border-radius: 8px;
+            }
+
+            /* ===== AgriBot Chat ===== */
+            #chatbot-button {
+                position: fixed;
+                bottom: 25px;
+                right: 25px;
+                background: #28a745;
+                color: white;
+                border-radius: 50%;
+                width: 55px;
+                height: 55px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 22px;
+                cursor: pointer;
+                z-index: 1051;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                transition: background 0.3s;
+            }
+
+            #chatbot-button:hover {
+                background: #218838;
+            }
+
+            #chatbot-modal {
+                display: none;
+                position: fixed;
+                bottom: 95px;
+                right: 25px;
+                width: 350px;
+                background: #fff;
+                border-radius: 12px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+                z-index: 1050;
+                overflow: hidden;
+                flex-direction: column;
+            }
+
+            .chat-header {
+                background: #28a745;
+                color: white;
+                padding: 12px 15px;
+                font-weight: 600;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            #chat-window {
+                max-height: 350px;
+                overflow-y: auto;
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .chat-message {
+                padding: 10px 12px;
+                border-radius: 8px;
+                max-width: 80%;
+                word-wrap: break-word;
+            }
+
+            .chat-bot {
+                background: #e9f7ef;
+                align-self: flex-start;
+            }
+
+            .chat-user {
+                background: #d1e7dd;
+                align-self: flex-end;
+            }
+
+            .chat-input {
+                display: flex;
+                padding: 8px;
+                border-top: 1px solid #eee;
+                background: #fafafa;
+            }
+
+            .chat-input input {
+                flex: 1;
+                margin-right: 6px;
+            }
+
+            .chat-input button {
+                background: #28a745;
+                border: none;
+                color: white;
+            }
+
+            .chat-input button:hover {
+                background: #218838;
+            }
+
+            .expert-links a {
+                display: block;
+                color: #198754;
+                font-size: 0.9rem;
+                margin-top: 3px;
+                text-decoration: none;
+            }
+
+            .expert-links a:hover {
+                text-decoration: underline;
+            }
+
+            .filter-sidebar {
+                background: white;
+                border-radius: 10px;
+                box-shadow: var(--card-shadow);
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+
+            .filter-header {
+                border-bottom: 2px solid var(--primary-color);
+                padding-bottom: 10px;
+                margin-bottom: 15px;
+            }
+
+            .user-welcome {
+                color: white;
+                margin-right: 15px;
+                display: flex;
+                align-items: center;
+            }
+
+            .search-box {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+
+            /* Market Trends Styles */
+            .market-trends {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9f7ef 100%);
+            }
+
+            .trend-card {
+                transition: all 0.3s ease;
+                border: none;
+                border-radius: 12px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            }
+
+            .trend-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+            .price-up {
+                color: #28a745;
+            }
+
+            .price-down {
+                color: #dc3545;
+            }
+
+            .price-stable {
+                color: #6c757d;
+            }
+
+            .commodity-price {
+                font-size: 1.4rem;
+                font-weight: 700;
+            }
+
+            .news-item {
+                border-left: 3px solid #28a745;
+                padding-left: 15px;
+                transition: all 0.3s ease;
+            }
+
+            .news-item:hover {
+                background-color: #f8f9fa;
+                border-left-color: #218838;
+            }
+
+            @media (max-width: 768px) {
+                .cart-sidebar {
+                    width: 100%;
+                }
+
+                .nav-button {
+                    margin: 2px 0;
+                    width: 100%;
+                }
+
+                .commodity-price {
+                    font-size: 1.2rem;
+                }
             }
         </style>
     </head>
     <body>
         <!-- Navigation Bar -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-success sticky-top">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success sticky-top shadow">
             <div class="container">
-                <a class="navbar-brand" href="#">
+                <a class="navbar-brand" href="index.jsp">
                     <i class="fas fa-leaf"></i> AgriYouth Marketplace
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="index.jsp">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Products</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Suppliers</a>
-                        </li>
-                    </ul>
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">
-                                <i class="fas fa-sign-in-alt"></i> Sign In
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="fas fa-info-circle"></i> About</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#"><i class="fas fa-phone"></i> Contact</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" id="cartButton">
-                                <i class="fas fa-shopping-cart"></i> Cart
-                                <span class="badge bg-danger rounded-pill" id="cartCount">0</span>
-                            </a>
-                        </li>
-                    </ul>
+                    <div class="navbar-nav me-auto">
+                        <a class="btn btn-outline-light nav-button" href="opportunities.jsp">
+                            <i class="fas fa-book"></i> Opportunities  
+                        </a>
+                        <a class="btn btn-outline-light nav-button" href="learning_support.jsp">
+                            <i class="fas fa-pen"></i> learning hub
+                        </a>
+                        <a class="btn btn-outline-light nav-button" href="Product_lising.jsp">
+                            <i class="fas fa-store"></i> All Products
+                        </a>
+                        <a class="btn btn-outline-light nav-button" href="testMarketstack.jsp">
+                            <i class="fas fa-store"></i> test yahoo
+                        </a>
+
+                        <% if (isLoggedIn) { %>
+                        <!-- Logged-in users see their correct dashboard -->
+                        <% if ("FARMER".equalsIgnoreCase(userRole)) { %>
+                        <a class="btn btn-outline-light nav-button" href="farmers_dashboard.jsp">
+                            <i class="fas fa-tachometer-alt"></i> My Dashboard
+                        </a>
+                        <% } else if ("BUYER".equalsIgnoreCase(userRole)) { %>
+                        <a class="btn btn-outline-light nav-button" href="buyer_dashboard.jsp">
+                            <i class="fas fa-tachometer-alt"></i> My Dashboard
+                        </a>
+                        <% } else if ("ADMIN".equalsIgnoreCase(userRole)) { %>
+                        <a class="btn btn-outline-light nav-button" href="admin_dashboard.jsp">
+                            <i class="fas fa-tachometer-alt"></i> My Dashboard
+                        </a>
+                        <% } else { %>
+                        <a class="btn btn-outline-light nav-button" href="dashboard.jsp">
+                            <i class="fas fa-tachometer-alt"></i> My Dashboard
+                        </a>
+                        <% } %>
+                        <% } else { %>
+                        <!-- Not logged in: show login modal -->
+                        <button class="btn btn-outline-light nav-button" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="fas fa-tachometer-alt"></i> My Dashboard
+                        </button>
+                        <% } %>
+                    </div>
+
+                    <div class="navbar-nav ms-auto">
+                        <% if (isLoggedIn) {%>
+                        <span class="user-welcome">
+                            <i class="fas fa-user me-1"></i> Welcome, <%= userName != null ? userName : userEmail%>
+                        </span>
+                        <a class="btn btn-outline-light nav-button" href="LogoutServlet">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                        <% } else { %>
+                        <button class="btn btn-outline-light nav-button" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </button>
+                        <button class="btn btn-light nav-button" data-bs-toggle="modal" data-bs-target="#registerModal">
+                            <i class="fas fa-user-plus"></i> Register
+                        </button>
+                        <% } %>
+                        <button class="btn btn-warning nav-button position-relative" id="cartButton">
+                            <i class="fas fa-shopping-cart"></i> Cart 
+                            <span class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill" id="cartCount">0</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </nav>
 
         <!-- Hero Section -->
-        <div class="hero-section">
-            <div class="container text-center">
+        <div class="hero-section text-center">
+            <div class="container">
                 <h1 class="display-4 fw-bold">Connect. Grow. Prosper.</h1>
                 <p class="lead">Lesotho's premier marketplace for youth-led agri-businesses</p>
-                <form class="d-flex justify-content-center mt-4">
-                    <input class="form-control me-2 w-50" type="search" placeholder="Search for products..." aria-label="Search">
-                    <button class="btn btn-warning" type="submit"><i class="fas fa-search"></i> Search</button>
-                </form>
+                <div class="search-box">
+                    <form class="d-flex mt-4" id="searchForm">
+                        <input class="form-control me-2" id="searchInput" type="search" placeholder="Search for products...">
+                        <button class="btn btn-warning" type="submit">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </form>
+                </div>
+
             </div>
         </div>
 
-        <!-- Main Content Container -->
+        <!-- 🌍 Market Trends Section -->
+        <section class="market-trends py-5">
+            <div class="container">
+                <div class="row">
+                    <div class="col-12 text-center mb-5">
+                        <h2 class="text-success">
+                            <i class="fas fa-chart-line me-2"></i>Agricultural Market Trends
+                        </h2>
+                        <p class="lead">Stay updated with global agricultural markets and demands</p>
+                    </div>
+                </div>
+
+                <!-- Commodity Prices -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card trend-card">
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-seedling me-2"></i>Global Agri-Stocks
+                                </h5>
+                                <small id="lastUpdated" class="fw-light">Loading...</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="marketStackData">
+                                    <div class="col-12 text-center">
+                                        <div class="spinner-border text-success" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading global market data...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Market News & Trends -->
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card trend-card h-100">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-newspaper me-2"></i>Latest Market News
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="marketNews">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-info" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading news...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price Trends -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card trend-card h-100">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-chart-bar me-2"></i>Local Price Trends
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="priceTrends">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-warning" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading trends...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
         <div class="container mb-5">
             <div class="row">
-                <!-- Filters Sidebar (optional) -->
+                <!-- Filters Sidebar -->
                 <div class="col-md-3">
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
+                    <div class="filter-sidebar">
+                        <div class="filter-header">
+                            <h5><i class="fas fa-filter"></i> Filters</h5>
                         </div>
-                        <div class="card-body">
+
+                        <!-- Category Filter -->
+                        <div class="mb-4">
                             <h6>Category</h6>
                             <%
                                 try {
-                                    // Get distinct categories from database
                                     Statement catStmt = conn.createStatement();
                                     ResultSet catRs = catStmt.executeQuery("SELECT DISTINCT category FROM products WHERE is_available = 1");
-
                                     while (catRs.next()) {
                                         String category = catRs.getString("category");
                             %>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="<%= category%>" value="<%= category%>">
-                                <label class="form-check-label" for="<%= category%>"><%= category%></label>
+                                <input class="form-check-input category-filter" type="checkbox" value="<%=category%>" id="cat-<%=category.replace(" ", "-")%>">
+                                <label class="form-check-label" for="cat-<%=category.replace(" ", "-")%>">
+                                    <%=category%>
+                                </label>
                             </div>
                             <%
                                     }
@@ -171,266 +538,221 @@
                                     out.println("Error fetching categories: " + e.getMessage());
                                 }
                             %>
-
-                            <hr>
-
-                            <h6>Price Range</h6>
-                            <div class="mb-3">
-                                <label for="priceRange" class="form-label">M 0 - M 500</label>
-                                <input type="range" class="form-range" id="priceRange" min="0" max="500">
-                            </div>
-
-                            <button class="btn btn-sm btn-success w-100">Apply Filters</button>
                         </div>
+
+                        <!-- Price Range Filter -->
+                        <div class="mb-4">
+                            <h6>Price Range</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>M 0</span>
+                                <span>M 500</span>
+                            </div>
+                            <input type="range" class="form-range" id="priceRange" min="0" max="500" value="500">
+                            <div class="text-center mt-2">
+                                <small>Max: M <span id="priceRangeValue">500</span></small>
+                            </div>
+                        </div>
+
+                        <!-- Sort Options -->
+                        <div class="mb-4">
+                            <h6>Sort By</h6>
+                            <select class="form-select" id="sortSelect">
+                                <option value="newest">Newest First</option>
+                                <option value="price_low">Price: Low to High</option>
+                                <option value="price_high">Price: High to Low</option>
+                                <option value="name_asc">Name: A to Z</option>
+                                <option value="name_desc">Name: Z to A</option>
+                            </select>
+                        </div>
+
+                        <!-- Apply Filters Button -->
+                        <button id="applyFilters" class="btn btn-success w-100">
+                            <i class="fas fa-check"></i> Apply Filters
+                        </button>
+
+                        <!-- Reset Filters Button -->
+                        <button id="resetFilters" class="btn btn-outline-secondary w-100 mt-2">
+                            <i class="fas fa-redo"></i> Reset Filters
+                        </button>
                     </div>
                 </div>
 
-                <!-- Product Listing -->
+                <!-- Products Grid -->
                 <div class="col-md-9">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h3>Featured Products</h3>
-                        <div>
-                            <select class="form-select form-select-sm" id="sortSelect">
-                                <option value="newest">Sort by: Newest</option>
-                                <option value="price_low">Sort by: Price Low to High</option>
-                                <option value="price_high">Sort by: Price High to Low</option>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">View:</span>
+                            <select class="form-select form-select-sm w-auto" id="viewSelect">
+                                <option value="grid">Grid View</option>
+                                <option value="list">List View</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 g-4" id="productList">
+                    <div class="row g-4" id="productList">
                         <%
-                            try {
-                                // Check if result set is available
-                                if (rs != null) {
-                                    // Loop through products from database
-                                    while (rs.next()) {
-                                        int id = rs.getInt("ID");
-                                        String name = rs.getString("name");
-                                        String description = rs.getString("description");
-                                        String category = rs.getString("category");
-                                        double price = rs.getDouble("price");
-                                        double quantity = rs.getDouble("quantity");
-                                        String unit = rs.getString("unit");
-                                        Blob imageBlob = rs.getBlob("image");
-                                        String imageUrl = "https://placehold.co/300x200/28a745/white?text=" + name.replace(" ", "+");
-
-                                        // If image blob exists, we'd need to create a servlet to serve it
-                                        // For now, using placeholder
-%>
-                        <!-- Product Card -->
-                        <div class="col">
+                            if (rs != null) {
+                                while (rs.next()) {
+                                    int id = rs.getInt("id");
+                                    String name = rs.getString("name");
+                                    String desc = rs.getString("description");
+                                    double price = rs.getDouble("price");
+                                    String category = rs.getString("category");
+                                    double qty = rs.getDouble("quantity");
+                                    String unit = rs.getString("unit");
+                                    String img = "ImageServlet?id=" + id;
+                        %>
+                        <div class="col-md-4 col-sm-6 product-item">
                             <div class="card product-card h-100">
-                                <img src="<%= imageUrl%>" class="card-img-top product-image" alt="<%= name%>">
-                                <div class="card-body">
-                                    <h5 class="card-title"><%= name%></h5>
-                                    <p class="card-text"><%= description%></p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="h5 text-success mb-0">M <%= price%></span>
-                                        <span class="badge bg-warning text-dark"><i class="fas fa-star"></i> 4.8</span>
+                                <img src="<%=img%>" class="card-img-top product-image" alt="<%=name%>">
+                                <div class="card-body d-flex flex-column">
+                                    <div class="mb-2">
+                                        <span class="badge bg-success"><%=category%></span>
                                     </div>
-                                    <p class="text-muted">Min. order: <%= quantity%> <%= unit%></p>
-                                </div>
-                                <div class="card-footer bg-white">
-                                    <button class="btn btn-outline-success btn-sm" onclick="addToCart(<%= id%>, '<%= name%>', <%= price%>, '<%= imageUrl%>')">
-                                        <i class="fas fa-cart-plus"></i> Add to Cart
-                                    </button>
+                                    <h5 class="card-title"><%=name%></h5>
+                                    <p class="card-text flex-grow-1"><%=desc.length() > 100 ? desc.substring(0, 100) + "..." : desc%></p>
+                                    <div class="mt-auto">
+                                        <p class="text-success fw-bold mb-1">M <%=String.format("%.2f", price)%></p>
+                                        <p class="text-muted small mb-2"><%=qty%> <%=unit%> available</p>
+                                        <button class="btn btn-outline-success btn-sm w-100 add-to-cart-btn" 
+                                                data-id="<%=id%>" 
+                                                data-name="<%=name%>" 
+                                                data-price="<%=price%>" 
+                                                data-image="<%=img%>">
+                                            <i class="fas fa-cart-plus"></i> Add to Cart
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <%
-                                    }
-                                }
-                            } catch (Exception e) {
-                                out.println("Error displaying products: " + e.getMessage());
-                            } finally {
-                                // Close database resources
-                                try {
-                                    if (rs != null) {
-                                        rs.close();
-                                    }
-                                } catch (Exception e) {
-                                }
-                                try {
-                                    if (stmt != null) {
-                                        stmt.close();
-                                    }
-                                } catch (Exception e) {
-                                }
-                                try {
-                                    if (conn != null) {
-                                        conn.close();
-                                    }
-                                } catch (Exception e) {
                                 }
                             }
                         %>
                     </div>
 
-                    <!-- Pagination -->
-                    <nav class="mt-5">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#">Previous</a>
-                            </li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item">
-                                <a class="page-link" href="#">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
+                    <!-- Loading Indicator -->
+                    <div id="loadingIndicator" class="text-center mt-4 d-none">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading products...</p>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- 🌱 AGRIBOT FLOATING BUTTON -->
+        <div id="chatbot-button" onclick="toggleChatbot()">
+            <i class="fas fa-comments"></i>
+        </div>
+
+        <!-- 🌱 AGRIBOT MODAL -->
+        <div id="chatbot-modal">
+            <div class="chat-header">
+                <span><i class="fas fa-seedling me-2"></i> AgriBot Assistant</span>
+                <button type="button" class="btn-close btn-close-white" aria-label="Close" onclick="closeChatbot()"></button>
+            </div>
+
+            <div id="chat-window">
+                <div class="chat-message chat-bot">
+                    Welcome! I'm AgriBot — your smart farming assistant.  
+                    Ask me about crops, livestock, or agri-market trends!
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <input type="text" id="chat-input-text" class="form-control" placeholder="Ask me anything..." onkeypress="if (event.key === 'Enter')
+                            sendMessage()">
+                <button class="btn btn-agri-primary" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Cart Overlay -->
+        <div class="cart-overlay" id="cartOverlay"></div>
+
         <!-- Cart Sidebar -->
-        <div class="cart-sidebar position-fixed top-0 end-0 h-100 bg-light p-3 overflow-auto" id="cartSidebar">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4><i class="fas fa-shopping-cart"></i> Your Cart</h4>
-                <button class="btn btn-sm btn-outline-secondary" onclick="closeCart()">
+        <div class="cart-sidebar position-fixed top-0 end-0 h-100 bg-white p-4 overflow-auto" id="cartSidebar">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="m-0"><i class="fas fa-shopping-cart me-2"></i> Your Cart</h4>
+                <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="closeCart()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
+            <!-- Cart Items -->
             <div id="cartItems">
-                <!-- Cart items will be added here dynamically -->
-                <p class="text-muted text-center" id="emptyCartMessage">Your cart is empty</p>
+                <p class="text-muted text-center py-4" id="emptyCartMessage">Your cart is empty</p>
             </div>
 
-            <div class="mt-3 d-none" id="cartSummary">
+            <!-- Cart Summary -->
+            <div id="cartSummary" class="mt-4 d-none">
                 <hr>
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between mb-3">
+                    <strong>Subtotal:</strong>
+                    <strong id="cartSubtotal">M 0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Shipping:</span>
+                    <span id="shippingCost">M 0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
                     <strong>Total:</strong>
                     <strong id="cartTotal">M 0.00</strong>
                 </div>
-                <button class="btn btn-success w-100 mt-3">Proceed to Checkout</button>
+                <button class="btn btn-success w-100 py-2" id="checkoutBtn">
+                    <i class="fas fa-credit-card me-2"></i> Proceed to Checkout
+                </button>
             </div>
         </div>
 
         <!-- Login Modal -->
-        <div class="modal fade" id="loginModal" tabindex="-1">
+        <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
             <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Sign In to Your Account</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="loginModalLabel">
+                            <i class="fas fa-sign-in-alt"></i> Sign In
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
+
                     <div class="modal-body">
-                        <form>
+                        <%
+                            String errorMessage = (String) request.getAttribute("errorMessage");
+                            if (errorMessage != null) {
+                        %>
+                        <div class="alert alert-danger text-center"><%= errorMessage%></div>
+                        <% }%>
+
+                        <form action="LoginServlet" method="post" autocomplete="off">
                             <div class="mb-3">
-                                <label for="email" class="form-label">Email address</label>
-                                <input type="email" class="form-control" id="email" required>
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" name="email" id="email" class="form-control" placeholder="Enter your email" required>
                             </div>
+
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
-                                <input type="password" class="form-control" id="password" required>
-                            </div>
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="remember">
-                                <label class="form-check-label" for="remember">Remember me</label>
-                            </div>
-                            <button type="submit" class="btn btn-success w-100">Sign In</button>
-                        </form>
-                        <div class="text-center mt-3">
-                            <p>Don't have an account? 
-                                <a href="#" 
-                                   data-bs-toggle="modal" 
-                                   data-bs-target="#registerModal" 
-                                   data-bs-dismiss="modal"
-                                   class="text-success fw-bold">
-                                    Register here
-                                </a>
-                            </p>
-
-                            <p><a href="#">Forgot your password?</a></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Register Modal -->
-        <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="registerModalLabel">Create Your Account</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="registerForm" action="RegisterServlet" method="post">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="registerFirstName" class="form-label">First Name *</label>
-                                    <input type="text" class="form-control" id="registerFirstName" name="firstName" required 
-                                           placeholder="Enter your first name">
-                                    <div class="invalid-feedback">Please enter your first name</div>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="registerLastName" class="form-label">Last Name *</label>
-                                    <input type="text" class="form-control" id="registerLastName" name="lastName" required 
-                                           placeholder="Enter your last name">
-                                    <div class="invalid-feedback">Please enter your last name</div>
-                                </div>
+                                <input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" required>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="registerEmail" class="form-label">Email Address *</label>
-                                <input type="email" class="form-control" id="registerEmail" name="email" required 
-                                       placeholder="your.email@example.com">
-                                <div class="invalid-feedback">Please enter a valid email address</div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="registerPhone" class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" id="registerPhone" name="phoneNumber" 
-                                       placeholder="+266 123 4567">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="registerRole" class="form-label">I am a *</label>
-                                <select class="form-select" id="registerRole" name="role" required>
-                                    <option value="">Select your role</option>
-                                    <option value="FARMER">Farmer</option>
-                                    <option value="BUYER">Buyer</option>
-                                </select>
-                                <div class="invalid-feedback">Please select your role</div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="registerLocation" class="form-label">Location</label>
-                                <input type="text" class="form-control" id="registerLocation" name="location" 
-                                       placeholder="Maseru, Lesotho">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="registerPassword" class="form-label">Password *</label>
-                                <input type="password" class="form-control" id="registerPassword" name="password" required 
-                                       placeholder="At least 6 characters">
-                                <div class="form-text">Password must be at least 6 characters long</div>
-                                <div class="invalid-feedback">Please enter a password (min. 6 characters)</div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="registerConfirmPassword" class="form-label">Confirm Password *</label>
-                                <input type="password" class="form-control" id="registerConfirmPassword" name="confirmPassword" required 
-                                       placeholder="Re-enter your password">
-                                <div class="invalid-feedback">Passwords do not match</div>
-                            </div>
-
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-success" id="registerSubmitBtn">
-                                    <span class="spinner-border spinner-border-sm me-2 d-none" id="registerSpinner"></span>
-                                    Create Account
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-sign-in-alt"></i> Login
                                 </button>
                             </div>
                         </form>
 
-                        <div class="text-center mt-3">
-                            <p class="text-muted">Already have an account? 
-                                <a href="#" class="text-success fw-bold" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
-                                    Sign in here
+                        <div class="text-center">
+                            <p class="mb-0">Don't have an account? 
+                                <a href="#" class="text-success fw-bold" 
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#registerModal" 
+                                   data-bs-dismiss="modal">
+                                    Register here
                                 </a>
                             </p>
                         </div>
@@ -439,164 +761,855 @@
             </div>
         </div>
 
-        <!-- Footer -->
-        <footer class="bg-dark text-white py-4 mt-5">
-            <div class="container">
-                <div class="row">
-                    <div class="col-md-4">
-                        <h5>AgriYouth Marketplace</h5>
-                        <p>Empowering youth-led agri-businesses in Lesotho through technology and innovation.</p>
+        <!-- Register Modal -->
+        <div class="modal fade" id="registerModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">Create Your Account</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="col-md-2">
-                        <h5>Quick Links</h5>
-                        <ul class="list-unstyled">
-                            <li><a href="#" class="text-white">Home</a></li>
-                            <li><a href="#" class="text-white">Products</a></li>
-                            <li><a href="#" class="text-white">Suppliers</a></li>
-                        </ul>
+
+                    <div class="modal-body">
+                        <form action="RegisterServlet" method="post" enctype="multipart/form-data">
+                            <!-- First Name -->
+                            <div class="mb-3">
+                                <label class="form-label">First Name</label>
+                                <input type="text" class="form-control" name="firstName" required>
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="mb-3">
+                                <label class="form-label">Last Name</label>
+                                <input type="text" class="form-control" name="lastName" required>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <input type="password" class="form-control" name="password" required>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div class="mb-3">
+                                <label class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" name="confirmPassword" required>
+                            </div>
+
+                            <!-- Phone Number -->
+                            <div class="mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" name="phoneNumber" placeholder="+266 5xxxxxxx" required>
+                            </div>
+
+                            <!-- Location -->
+                            <div class="mb-3">
+                                <label class="form-label">Location</label>
+                                <input type="text" class="form-control" name="location" placeholder="Enter your location">
+                            </div>
+
+                            <!-- Bio -->
+                            <div class="mb-3">
+                                <label class="form-label">Bio</label>
+                                <textarea class="form-control" name="bio" rows="3" placeholder="Tell us a bit about yourself..."></textarea>
+                            </div>
+
+                            <!-- Profile Picture -->
+                            <div class="mb-3">
+                                <label class="form-label">Profile Picture</label>
+                                <input type="file" class="form-control" name="profilePicture">
+                            </div>
+
+                            <!-- Role -->
+                            <div class="mb-3">
+                                <label class="form-label">Role</label>
+                                <select name="role" class="form-select" required>
+                                    <option value="">Select Role</option>
+                                    <option value="BUYER">Buyer</option>
+                                    <option value="FARMER">Farmer</option>
+                                    <option value="ADMIN">Admin</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-success w-100">Register</button>
+                        </form>
                     </div>
-                    <div class="col-md-3">
-                        <h5>Contact Us</h5>
-                        <ul class="list-unstyled">
-                            <li><i class="fas fa-phone"></i> +266 1234 5678</li>
-                            <li><i class="fas fa-envelope"></i> info@agriyouth.ls</li>
-                            <li><i class="fas fa-map-marker-alt"></i> Maseru, Lesotho</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-3">
-                        <h5>Follow Us</h5>
-                        <div>
-                            <a href="#" class="text-white me-2"><i class="fab fa-facebook-f fa-lg"></i></a>
-                            <a href="#" class="text-white me-2"><i class="fab fa-twitter fa-lg"></i></a>
-                            <a href="#" class="text-white me-2"><i class="fab fa-instagram fa-lg"></i></a>
-                            <a href="#" class="text-white"><i class="fab fa-linkedin-in fa-lg"></i></a>
-                        </div>
+
+                    <div class="modal-footer text-center">
+                        <p class="w-100 mb-0">
+                            Already have an account?
+                            <a href="#" class="text-success fw-bold"
+                               data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">
+                                Sign In
+                            </a>
+                        </p>
                     </div>
                 </div>
-                <hr>
-                <p class="text-center mb-0">© 2025 AgriYouth Marketplace. All rights reserved.</p>
             </div>
+        </div>
+
+
+        <footer class="bg-dark text-white py-4 mt-5 text-center">
+            <p class="mb-0">© 2025 AgriYouth Marketplace. All rights reserved.</p>
         </footer>
 
-        <!-- Bootstrap & jQuery JS -->
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
         <script>
+                    // MarketStack API Configuration
+                    const MARKETSTACK_API_KEY = '3d9a370c91d3274063b1b58608f6ece3';
+                    const MARKETSTACK_BASE_URL = 'http://api.marketstack.com/v2/eod';
+
+// Market Trends JavaScript
+                    document.addEventListener('DOMContentLoaded', function () {
+                        loadMarketStackData();
+                        loadMarketNews();
+                        loadPriceTrends();
+                        // Refresh data every 10 minutes
+                        setInterval(loadMarketStackData, 600000);
+                    });
+
+                    async function loadMarketStackData() {
+                        try {
+                            const response = await fetch('market-data');
+                            const data = await response.json();
+
+                            if (data.status === 'success') {
+                                displayMarketStackData(data);
+                            } else {
+                                showFallbackMarketData();
+                            }
+                        } catch (error) {
+                            console.error('Error fetching market data:', error);
+                            showFallbackMarketData();
+                        }
+                    }
+
+                    function displayMarketStackData(data) {
+                        const marketData = data.data.market;
+                        let html = '';
+
+                        marketData.forEach(stock => {
+                            const change = ((stock.close - stock.open) / stock.open * 100);
+                            const isPositive = change >= 0;
+                            const changeFormatted = change.toFixed(2);
+                            const sign = isPositive ? '+' : '';
+
+                            html += `
+            <div class="col-md-3 col-6 mb-3">
+                <div class="card h-100 border-0">
+                    <div class="card-body text-center p-3">
+                        <h6 class="card-title text-dark mb-2">${stock.symbol}</h6>
+                        <div class="commodity-price ${isPositive ? 'price-up' : 'price-down'}">
+                            $${stock.close.toFixed(2)}
+                        </div>
+                        <small class="text-muted">${stock.category}</small>
+                        <div class="mt-2">
+                            <small class="${isPositive ? 'price-up' : 'price-down'}">
+                                <i class="fas fa-arrow-${isPositive ? 'up' : 'down'} me-1"></i>
+            ${sign}${changeFormatted}%
+                            </small>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Vol: ${(stock.volume / 1000000).toFixed(1)}M
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+                        });
+
+                        document.getElementById('marketStackData').innerHTML = html;
+                        document.getElementById('lastUpdated').textContent = `Updated: ${data.lastUpdated} (${data.source})`;
+                    }
+
+                    function showFallbackMarketData() {
+                        // Use the fallback data from your servlet
+                        const fallbackData = {
+                            status: "success",
+                            source: "fallback",
+                            lastUpdated: new Date().toISOString().split('T')[0],
+                            data: {
+                                market: [
+                                    {"symbol": "DE", "date": "2024-01-01", "open": 385.5, "high": 388.2, "low": 382.1, "close": 386.75, "volume": 2450000, "currency": "USD", "category": "Agri Machinery"},
+                                    {"symbol": "ADM", "date": "2024-01-01", "open": 58.2, "high": 59.1, "low": 57.8, "close": 58.9, "volume": 3200000, "currency": "USD", "category": "Grain Processing"},
+                                    {"symbol": "BG", "date": "2024-01-01", "open": 92.5, "high": 93.8, "low": 91.9, "close": 93.2, "volume": 1100000, "currency": "USD", "category": "Grain Trading"},
+                                    {"symbol": "CTVA", "date": "2024-01-01", "open": 54.1, "high": 55.0, "low": 53.7, "close": 54.6, "volume": 2800000, "currency": "USD", "category": "Seeds & Crop Protection"}
+                                ]
+                            }
+                        };
+
+                        displayMarketStackData(fallbackData);
+                        document.getElementById('lastUpdated').textContent = 'Updated: Fallback Data';
+                    }
+
+// Keep your existing functions for news and trends
+                    function loadMarketNews() {
+                        const newsItems = [
+                            {
+                                title: 'Global Agri-Stocks Show Mixed Performance',
+                                source: 'MarketStack',
+                                date: 'Live',
+                                summary: 'Agricultural equipment and processing stocks trading actively'
+                            },
+                            {
+                                title: 'Lesotho Farmers Adopt New Irrigation Techniques',
+                                source: 'Local Agriculture',
+                                date: '5 hours ago',
+                                summary: 'Water-efficient methods boosting yields'
+                            },
+                            {
+                                title: 'Organic Farming Demand Increases in Southern Africa',
+                                source: 'Market Watch',
+                                date: '1 day ago',
+                                summary: 'Consumers driving organic produce market'
+                            },
+                            {
+                                title: 'New Export Opportunities for African Produce',
+                                source: 'Trade Digest',
+                                date: '2 days ago',
+                                summary: 'European markets opening for African crops'
+                            }
+                        ];
+
+                        let newsHtml = '';
+                        newsItems.forEach(news => {
+                            newsHtml += `
+            <div class="news-item mb-3">
+                <h6 class="mb-1 fw-bold">${news.title}</h6>
+                <p class="mb-1 small">${news.summary}</p>
+                <small class="text-muted">
+                    <i class="fas fa-source me-1"></i>${news.source} • 
+                    <i class="fas fa-clock me-1"></i>${news.date}
+                </small>
+            </div>
+        `;
+                        });
+
+                        document.getElementById('marketNews').innerHTML = newsHtml;
+                    }
+
+                    function loadPriceTrends() {
+                        const trends = [
+                            {product: 'Tomatoes', trend: 'up', change: 15, currentPrice: 12.50},
+                            {product: 'Potatoes', trend: 'down', change: 8, currentPrice: 8.75},
+                            {product: 'Onions', trend: 'up', change: 12, currentPrice: 9.25},
+                            {product: 'Cabbage', trend: 'stable', change: 2, currentPrice: 6.50},
+                            {product: 'Carrots', trend: 'up', change: 5, currentPrice: 7.80}
+                        ];
+
+                        let trendsHtml = '';
+                        trends.forEach(trend => {
+                            const icon = trend.trend === 'up' ? 'arrow-up' :
+                                    trend.trend === 'down' ? 'arrow-down' : 'minus';
+                            const color = trend.trend === 'up' ? 'success' :
+                                    trend.trend === 'down' ? 'danger' : 'warning';
+
+                            trendsHtml += `
+            <div class="trend-item mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-medium">${trend.product}</span>
+                    <span class="text-${color} fw-bold">
+                        <i class="fas fa-${icon} me-1"></i>
+            ${trend.change}%
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">M ${trend.currentPrice.toFixed(2)}/kg</small>
+                    <div class="progress flex-grow-1 ms-2" style="height: 6px; max-width: 100px;">
+                        <div class="progress-bar bg-${color}" 
+                             style="width: ${Math.min(Math.abs(trend.change) * 3, 100)}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+                        });
+
+                        document.getElementById('priceTrends').innerHTML = trendsHtml;
+                    }
                     // Cart functionality
-                    let cart = [];
-                    let cartCount = 0;
-                    let cartTotal = 0;
-
-                    // Function to add product to cart
                     function addToCart(id, name, price, image) {
-                        // Check if product already in cart
-                        const existingItem = cart.find(item => item.id === id);
+                        console.log('Adding to cart:', id, name, price, image);
 
-                        if (existingItem) {
-                            existingItem.quantity += 1;
-                        } else {
-                            cart.push({
-                                id: id,
-                                name: name,
-                                price: price,
-                                image: image,
-                                quantity: 1
-                            });
+                        $.post("CartServlet", {
+                            action: "add",
+                            id: id,
+                            qty: 1
+                        }, function (data) {
+                            console.log('Cart response:', data);
+                            if (data.success) {
+                                updateCartDisplay(data.cart);
+                                showToast(name + ' added to cart!');
+                            } else {
+                                alert(data.message);
+                            }
+                        }, "json").fail(function (xhr, status, error) {
+                            console.error('Cart AJAX error:', error);
+                            alert('Error adding to cart. Please try again.');
+                        });
+                    }
+
+                    function removeFromCart(id) {
+                        $.post("CartServlet", {
+                            action: "remove",
+                            id: id
+                        }, function (data) {
+                            if (data.success) {
+                                updateCartDisplay(data.cart);
+                                showToast('Item removed from cart');
+                                if (!data.cart || data.cart.length === 0) {
+                                    closeCart();
+                                }
+                            } else {
+                                alert(data.message);
+                            }
+                        }, "json").fail(function (xhr, status, error) {
+                            console.error('Remove cart error:', error);
+                            alert('Error removing item from cart.');
+                        });
+                    }
+
+                    function updateCartDisplay(cart) {
+                        let cartItems = $("#cartItems");
+                        cartItems.html("");
+                        let total = 0;
+
+                        if (!cart || cart.length === 0) {
+                            $("#emptyCartMessage").removeClass("d-none");
+                            $("#cartSummary").addClass("d-none");
+                            $("#cartCount").text("0");
+                            return;
                         }
 
-                        updateCart();
-                        openCart();
+                        $("#emptyCartMessage").addClass("d-none");
 
-                        // Show notification
-                        alert(`Added ${name} to cart!`);
-                    }
+                        cart.forEach(i => {
+                            const price = parseFloat(i.price) || 0;
+                            const quantity = parseInt(i.qty) || 0;
+                            const itemTotal = price * quantity;
+                            total += itemTotal;
 
-                    // Function to remove item from cart
-                    function removeFromCart(id) {
-                        cart = cart.filter(item => item.id !== id);
-                        updateCart();
-                    }
+                            let imageUrl = i.image;
+                            if (!imageUrl) {
+                                imageUrl = 'ImageServlet?id=' + i.id;
+                            }
 
-                    // Function to update cart UI
-                    function updateCart() {
-                        const cartItems = document.getElementById('cartItems');
-                        const cartCountElement = document.getElementById('cartCount');
-                        const cartTotalElement = document.getElementById('cartTotal');
-                        const cartSummary = document.getElementById('cartSummary');
-                        const emptyCartMessage = document.getElementById('emptyCartMessage');
-
-                        // Update cart count
-                        cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-                        cartCountElement.textContent = cartCount;
-
-                        // Update cart items
-                        cartItems.innerHTML = '';
-                        cartTotal = 0;
-
-                        if (cart.length === 0) {
-                            emptyCartMessage.classList.remove('d-none');
-                            cartSummary.classList.add('d-none');
-                        } else {
-                            emptyCartMessage.classList.add('d-none');
-                            cartSummary.classList.remove('d-none');
-
-                            cart.forEach(item => {
-                                const itemTotal = item.price * item.quantity;
-                                cartTotal += itemTotal;
-
-                                const cartItem = document.createElement('div');
-                                cartItem.className = 'card mb-2';
-                                cartItem.innerHTML = `
-                            <div class="card-body py-2">
-                                <div class="d-flex justify-content-between">
-                                    <div class="d-flex">
-                                        <img src="${item.image}" class="cart-item-img me-2" alt="${item.name}">
-                                        <div>
-                                            <h6 class="mb-0">${item.name}</h6>
-                                            <small>M ${item.price.toFixed(2)} × ${item.quantity}</small>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <span class="fw-bold">M ${itemTotal.toFixed(2)}</span>
-                                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart(${item.id})">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
+                            cartItems.append(`
+                        <div class="d-flex justify-content-between align-items-center border-bottom py-3">
+                            <div class="d-flex align-items-center">
+                                <img src="${imageUrl}" class="cart-item-img rounded me-3" alt="${i.name}" 
+                                     onerror="this.onerror=null; this.src='https://placehold.co/60x60/cccccc/ffffff?text=No+Image'">
+                                <div>
+                                    <strong class="d-block">${i.name}</strong>
+                                    <small class="text-muted">M ${price.toFixed(2)} × ${quantity}</small>
                                 </div>
                             </div>
-                        `;
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${i.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `);
+                        });
 
-                                cartItems.appendChild(cartItem);
-                            });
-
-                            cartTotalElement.textContent = `M ${cartTotal.toFixed(2)}`;
-                        }
+                        $("#cartCount").text(cart.reduce((sum, i) => sum + (parseInt(i.qty) || 0), 0));
+                        $("#cartSubtotal").text("M " + total.toFixed(2));
+                        $("#cartTotal").text("M " + total.toFixed(2));
+                        $("#cartSummary").removeClass("d-none");
                     }
 
-                    // Function to open cart
                     function openCart() {
-                        document.getElementById('cartSidebar').classList.add('open');
+                        $("#cartSidebar").addClass("open");
+                        $("#cartOverlay").addClass("active");
+                        $("body").css("overflow", "hidden");
                     }
 
-                    // Function to close cart
                     function closeCart() {
-                        document.getElementById('cartSidebar').classList.remove('open');
+                        $("#cartSidebar").removeClass("open");
+                        $("#cartOverlay").removeClass("active");
+                        $("body").css("overflow", "auto");
                     }
 
-                    // Event listeners
-                    document.getElementById('cartButton').addEventListener('click', function (e) {
+                    function showToast(message) {
+                        const toast = document.createElement('div');
+                        toast.className = 'position-fixed bottom-0 end-0 p-3';
+                        toast.style.zIndex = '1060';
+                        toast.innerHTML = `
+                    <div class="toast show" role="alert">
+                        <div class="toast-header bg-success text-white">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong class="me-auto">Success</strong>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                        </div>
+                        <div class="toast-body">${message}</div>
+                    </div>
+                `;
+                        document.body.appendChild(toast);
+
+                        setTimeout(() => {
+                            toast.remove();
+                        }, 3000);
+                    }
+
+                    // Checkout button handler
+                    $("#checkoutBtn").click(function (e) {
                         e.preventDefault();
-                        openCart();
+                        console.log('Checkout button clicked');
+
+                        // First validate cart with CartServlet
+                        $.post("CartServlet", {action: "checkout"}, function (cartData) {
+                            console.log('Checkout validation response:', cartData);
+                            if (cartData.success) {
+                                // Cart is valid, show checkout form
+                                showCheckoutForm();
+                            } else {
+                                alert("❌ " + cartData.message);
+                            }
+                        }, "json").fail(function (xhr, status, error) {
+                            console.error('Checkout validation error:', error);
+                            alert('Error validating cart. Please try again.');
+                        });
                     });
 
-                    // Close cart when clicking outside
-                    document.addEventListener('click', function (e) {
-                        const cartSidebar = document.getElementById('cartSidebar');
-                        if (!cartSidebar.contains(e.target) && !e.target.closest('#cartButton')) {
-                            closeCart();
+                    // Show checkout form modal
+                    function showCheckoutForm() {
+                        // Get user info from session
+                        const userEmail = '<%= session.getAttribute("userEmail") != null ? session.getAttribute("userEmail") : ""%>';
+                        const userName = '<%= session.getAttribute("userName") != null ? session.getAttribute("userName") : ""%>';
+
+                        const checkoutForm = `
+                    <div class="modal fade" id="checkoutModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title"><i class="fas fa-shopping-bag me-2"></i>Complete Your Order</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="checkoutForm">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label fw-bold">First Name *</label>
+                                                <input type="text" class="form-control" name="firstName" required
+                                                       value="${userName.split(' ')[0] || ''}">
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Last Name *</label>
+                                                <input type="text" class="form-control" name="lastName" required
+                                                       value="${userName.split(' ')[1] || ''}">
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <label class="form-label fw-bold">Email Address for Receipt *</label>
+                                                <input type="email" class="form-control" name="email" required
+                                                       value="${userEmail}" placeholder="Enter email to receive receipt">
+                                                <div class="form-text">We'll send your order confirmation to this email</div>
+                                            </div>
+                                            <div class="col-12 mb-3">
+                                                <label class="form-label fw-bold">Delivery Address *</label>
+                                                <textarea class="form-control" name="deliveryAddress" required 
+                                                          placeholder="Enter your complete delivery address including street, city, and any specific instructions..." 
+                                                          rows="3"></textarea>
+                                                <div class="form-text">We'll deliver your order to this address</div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Phone Number *</label>
+                                                <input type="tel" class="form-control" name="phoneNumber" required
+                                                       placeholder="Enter your phone number">
+                                                <div class="form-text">For delivery updates</div>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label fw-bold">Payment Method *</label>
+                                                <select class="form-select" name="paymentMethod" required>
+                                                    <option value="">Select payment method</option>
+                                                    <option value="CASH" selected>Cash on Delivery</option>
+                                                    <option value="MOBILE_MONEY">Mobile Money</option>
+                                                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Please review your order in the cart before proceeding. You'll receive an email confirmation after checkout.
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-1"></i> Cancel
+                                    </button>
+                                    <button type="button" class="btn btn-success" id="confirmCheckoutBtn" onclick="processCheckout()">
+                                        <i class="fas fa-check me-1"></i> Place Order
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                        // Remove existing modal if any
+                        if ($('#checkoutModal').length) {
+                            $('#checkoutModal').remove();
                         }
+
+                        // Add modal to page
+                        $('body').append(checkoutForm);
+
+                        // Show modal
+                        const checkoutModal = new bootstrap.Modal(document.getElementById('checkoutModal'));
+                        checkoutModal.show();
+
+                        // Focus on first field
+                        setTimeout(() => {
+                            $('#checkoutForm input[name="firstName"]').focus();
+                        }, 500);
+                    }
+
+                    // Process final checkout with CheckoutServlet
+                    function processCheckout() {
+                        const form = document.getElementById('checkoutForm');
+
+                        // Basic form validation
+                        if (!form.checkValidity()) {
+                            // Show validation messages
+                            form.classList.add('was-validated');
+                            form.reportValidity();
+                            return;
+                        }
+
+                        const formData = new FormData(form);
+
+                        // Show loading state
+                        const confirmBtn = $('#confirmCheckoutBtn');
+                        const originalText = confirmBtn.html();
+                        confirmBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+
+                        console.log('Sending checkout data:', {
+                            firstName: formData.get('firstName'),
+                            lastName: formData.get('lastName'),
+                            email: formData.get('email'),
+                            deliveryAddress: formData.get('deliveryAddress'),
+                            phoneNumber: formData.get('phoneNumber'),
+                            paymentMethod: formData.get('paymentMethod')
+                        });
+
+                        $.post("CheckoutServlet", {
+                            firstName: formData.get('firstName'),
+                            lastName: formData.get('lastName'),
+                            email: formData.get('email'),
+                            deliveryAddress: formData.get('deliveryAddress'),
+                            phoneNumber: formData.get('phoneNumber'),
+                            paymentMethod: formData.get('paymentMethod')
+                        }, function (response) {
+                            console.log('Checkout response:', response);
+
+                            if (response.success) {
+                                // Success - show confirmation
+                                showOrderConfirmation(response.orderId);
+
+                                // Close modals
+                                bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
+                                closeCart();
+
+                                // Clear cart
+                                $("#cartCount").text("0");
+                                $("#cartItems").html('<p class="text-muted text-center py-4" id="emptyCartMessage">Your cart is empty</p>');
+                                $("#cartSummary").addClass("d-none");
+                            } else {
+                                alert("❌ " + response.message);
+                                confirmBtn.prop('disabled', false).html(originalText);
+                            }
+                        }, "json").fail(function (xhr, status, error) {
+                            console.error('Checkout error:', error);
+                            alert('Error processing checkout. Please try again.');
+                            confirmBtn.prop('disabled', false).html(originalText);
+                        });
+                    }
+
+                    function showOrderConfirmation(orderId) {
+                        const confirmation = `
+                    <div class="modal fade" id="confirmationModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header bg-success text-white">
+                                    <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Order Confirmed!</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <div class="mb-4">
+                                        <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                                    </div>
+                                    <h4 class="text-success mb-3">Thank You For Your Order!</h4>
+                                    <p class="mb-2">Your order has been received and is being processed.</p>
+                                    <p class="mb-3"><strong>Order ID:</strong> ${orderId}</p>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        You will receive an email confirmation shortly with your order details.
+                                    </div>
+                                </div>
+                                <div class="modal-footer justify-content-center">
+                                    <button type="button" class="btn btn-success" data-bs-dismiss="modal">
+                                        <i class="fas fa-shopping-bag me-1"></i> Continue Shopping
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                        // Remove existing modal if any
+                        if ($('#confirmationModal').length) {
+                            $('#confirmationModal').remove();
+                        }
+
+                        // Add modal to page
+                        $('body').append(confirmation);
+
+                        // Show modal
+                        const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+                        confirmationModal.show();
+                    }
+
+                    // Event Listeners
+                    $(document).ready(function () {
+                        // Add to cart buttons
+                        $(document).on("click", ".add-to-cart-btn", function () {
+                            const id = $(this).data("id");
+                            const name = $(this).data("name");
+                            const price = $(this).data("price");
+                            const image = $(this).data("image");
+                            addToCart(id, name, price, image);
+                        });
+
+                        // Cart button
+                        $("#cartButton").click(function () {
+                            openCart();
+                        });
+
+                        // Cart overlay
+                        $("#cartOverlay").click(function () {
+                            closeCart();
+                        });
+
+                        // Search form
+                        $("#searchForm").on("submit", function (e) {
+                            e.preventDefault();
+                            const query = $("#searchInput").val().trim();
+                            if (query) {
+                                searchProducts(query);
+                            }
+                        });
+
+                        // Price range display
+                        $("#priceRange").on("input", function () {
+                            $("#priceRangeValue").text($(this).val());
+                        });
+
+                        // Apply filters
+                        $("#applyFilters").click(function () {
+                            applyFilters();
+                        });
+
+                        // Reset filters
+                        $("#resetFilters").click(function () {
+                            resetFilters();
+                        });
+
+                        // View selector
+                        $("#viewSelect").change(function () {
+                            const view = $(this).val();
+                            if (view === "list") {
+                                $("#productList").addClass("list-view");
+                                $(".product-item").addClass("col-12");
+                                $(".product-card").addClass("flex-row");
+                            } else {
+                                $("#productList").removeClass("list-view");
+                                $(".product-item").removeClass("col-12");
+                                $(".product-card").removeClass("flex-row");
+                            }
+                        });
+
+                        // Load initial cart
+                        $.get("CartServlet", {action: "get"}, function (data) {
+                            if (data.success) {
+                                updateCartDisplay(data.cart);
+                            }
+                        }, "json").fail(function (xhr, status, error) {
+                            console.error("Error loading cart:", error);
+                        });
                     });
+
+                    // Search products function
+                    function searchProducts(query) {
+                        $("#loadingIndicator").removeClass("d-none");
+                        $("#productList").addClass("opacity-25");
+
+                        $.get("ProductSearchServlet", {q: query}, function (data) {
+                            $("#productList").html(data);
+                        }).always(function () {
+                            $("#loadingIndicator").addClass("d-none");
+                            $("#productList").removeClass("opacity-25");
+                        });
+                    }
+
+                    // Apply filters function
+                    function applyFilters() {
+                        const selectedCategories = [];
+                        $(".category-filter:checked").each(function () {
+                            selectedCategories.push($(this).val());
+                        });
+
+                        const maxPrice = $("#priceRange").val();
+                        const sortBy = $("#sortSelect").val();
+
+                        $("#loadingIndicator").removeClass("d-none");
+                        $("#productList").addClass("opacity-25");
+
+                        $.get("ProductFilterServlet", {
+                            categories: selectedCategories.join(","),
+                            maxPrice: maxPrice,
+                            sortBy: sortBy
+                        }, function (data) {
+                            $("#productList").html(data);
+                        }).always(function () {
+                            $("#loadingIndicator").addClass("d-none");
+                            $("#productList").removeClass("opacity-25");
+                        });
+                    }
+
+                    // Reset filters function
+                    function resetFilters() {
+                        $(".category-filter").prop("checked", false);
+                        $("#priceRange").val(500);
+                        $("#priceRangeValue").text("500");
+                        $("#sortSelect").val("newest");
+
+                        $("#loadingIndicator").removeClass("d-none");
+                        $("#productList").addClass("opacity-25");
+
+                        $.get("ProductFilterServlet", function (data) {
+                            $("#productList").html(data);
+                        }).always(function () {
+                            $("#loadingIndicator").addClass("d-none");
+                            $("#productList").removeClass("opacity-25");
+                        });
+                    }
         </script>
+
+        <script>
+            // Toggle chatbot visibility
+            function toggleChatbot() {
+                const modal = document.getElementById('chatbot-modal');
+                modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+                if (modal.style.display === 'flex') {
+                    document.getElementById('chat-input-text').focus();
+                }
+            }
+
+            function closeChatbot() {
+                document.getElementById('chatbot-modal').style.display = 'none';
+            }
+
+            // Send message to AI servlet
+            async function sendMessage() {
+                const input = document.getElementById('chat-input-text');
+                const message = input.value.trim();
+                if (message === '')
+                    return;
+
+                addMessage(message, 'user');
+                input.value = '';
+
+                // Show typing indicator
+                const typingId = 'typing-' + Date.now();
+                addMessage('<i class="fas fa-circle-notch fa-spin"></i> AgriBot is thinking...', 'bot-typing', typingId);
+
+                try {
+                    const response = await fetch('ChatServlet', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: 'message=' + encodeURIComponent(message)
+                    });
+
+                    const data = await response.json();
+
+                    // Remove typing indicator
+                    const typingElem = document.getElementById(typingId);
+                    if (typingElem)
+                        typingElem.remove();
+
+                    if (data.reply) {
+                        addMessage(data.reply, 'bot');
+                    } else if (data.error) {
+                        addMessage('⚠️ ' + data.error, 'bot');
+                    } else {
+                        addMessage('Sorry, I encountered an issue. Please try again!', 'bot');
+                    }
+
+                } catch (err) {
+                    console.error('Chatbot error:', err);
+                    const typingElem = document.getElementById(typingId);
+                    if (typingElem)
+                        typingElem.remove();
+                    addMessage('❌ Unable to connect to Agribot. Please check your internet connection and try again.', 'bot');
+                }
+            }
+
+            // Updated addMessage function with ID support
+            function addMessage(text, sender, id = null) {
+                const chatWindow = document.getElementById('chat-window');
+                const messageDiv = document.createElement('div');
+
+                if (id) {
+                    messageDiv.id = id;
+                }
+
+                if (sender === 'bot-typing') {
+                    messageDiv.className = 'chat-message chat-bot-typing';
+                    messageDiv.innerHTML = text;
+                } else if (sender === 'bot') {
+                    messageDiv.className = 'chat-message chat-bot';
+                    messageDiv.innerHTML = `<strong>AgriBot:</strong> ${text}`;
+                } else {
+                    messageDiv.className = 'chat-message chat-user';
+                    messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
+                }
+
+                chatWindow.appendChild(messageDiv);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            // Press Enter to send
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('chat-input-text').addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter')
+                        sendMessage();
+                });
+            });
+        </script>
+
     </body>
 </html>
+
+<%
+    // Close database connection
+    if (rs != null) try {
+        rs.close();
+    } catch (Exception e) {
+    }
+    if (stmt != null) try {
+        stmt.close();
+    } catch (Exception e) {
+    }
+    if (conn != null) try {
+        conn.close();
+    } catch (Exception e) {
+    }
+%>
