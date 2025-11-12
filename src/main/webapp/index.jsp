@@ -13,7 +13,7 @@
         Class.forName("com.mysql.cj.jdbc.Driver");
         conn = DriverManager.getConnection(url, username, password);
         stmt = conn.createStatement();
-        rs = stmt.executeQuery("SELECT * FROM products WHERE is_available = 1");
+        rs = stmt.executeQuery("SELECT * FROM products WHERE is_available = 1 LIMIT 6");
     } catch (Exception e) {
         out.println("<p style='color:red'>Database connection error: " + e.getMessage() + "</p>");
     }
@@ -164,6 +164,7 @@
                 bottom: 95px;
                 right: 25px;
                 width: 350px;
+                height: 500px;
                 background: #fff;
                 border-radius: 12px;
                 box-shadow: 0 8px 25px rgba(0,0,0,0.3);
@@ -183,47 +184,128 @@
             }
 
             #chat-window {
-                max-height: 350px;
+                flex-grow: 1;
                 overflow-y: auto;
-                padding: 10px;
+                padding: 15px;
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
+                gap: 12px;
+                background: #f8f9fa;
             }
 
-            .chat-message {
-                padding: 10px 12px;
-                border-radius: 8px;
-                max-width: 80%;
+            .message-container {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .message-user {
+                align-items: flex-end;
+            }
+
+            .message-bot {
+                align-items: flex-start;
+            }
+
+            .message-bubble {
+                max-width: 85%;
+                padding: 10px 15px;
+                border-radius: 18px;
                 word-wrap: break-word;
+                position: relative;
             }
 
-            .chat-bot {
-                background: #e9f7ef;
+            .message-user .message-bubble {
+                background: #007bff;
+                color: white;
+                border-bottom-right-radius: 5px;
+            }
+
+            .message-bot .message-bubble {
+                background: white;
+                color: #333;
+                border: 1px solid #e0e0e0;
+                border-bottom-left-radius: 5px;
+            }
+
+            .message-sender {
+                font-size: 0.75rem;
+                color: #666;
+                margin: 0 10px;
+            }
+
+            .message-user .message-sender {
+                text-align: right;
+            }
+
+            .message-bot .message-sender {
+                text-align: left;
+            }
+
+            .typing-indicator {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 10px 15px;
+                background: white;
+                border-radius: 18px;
+                border: 1px solid #e0e0e0;
+                max-width: 85%;
                 align-self: flex-start;
             }
 
-            .chat-user {
-                background: #d1e7dd;
-                align-self: flex-end;
+            .typing-dots {
+                display: flex;
+                gap: 3px;
+            }
+
+            .typing-dot {
+                width: 6px;
+                height: 6px;
+                background: #999;
+                border-radius: 50%;
+                animation: typing 1.4s infinite ease-in-out;
+            }
+
+            .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+            .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+            @keyframes typing {
+                0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+                40% { transform: scale(1); opacity: 1; }
             }
 
             .chat-input {
                 display: flex;
-                padding: 8px;
+                padding: 12px;
                 border-top: 1px solid #eee;
-                background: #fafafa;
+                background: white;
             }
 
             .chat-input input {
                 flex: 1;
-                margin-right: 6px;
+                margin-right: 8px;
+                border: 1px solid #ddd;
+                border-radius: 20px;
+                padding: 8px 15px;
+                outline: none;
+            }
+
+            .chat-input input:focus {
+                border-color: #28a745;
             }
 
             .chat-input button {
                 background: #28a745;
                 border: none;
                 color: white;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.3s;
             }
 
             .chat-input button:hover {
@@ -268,49 +350,25 @@
                 margin: 0 auto;
             }
 
-            /* Market Trends Styles */
-            .market-trends {
-                background: linear-gradient(135deg, #f8f9fa 0%, #e9f7ef 100%);
-            }
-
-            .trend-card {
+            .feature-card {
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                text-align: center;
+                box-shadow: var(--card-shadow);
                 transition: all 0.3s ease;
-                border: none;
-                border-radius: 12px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                height: 100%;
             }
 
-            .trend-card:hover {
+            .feature-card:hover {
                 transform: translateY(-5px);
-                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                box-shadow: var(--hover-shadow);
             }
 
-            .price-up {
-                color: #28a745;
-            }
-
-            .price-down {
-                color: #dc3545;
-            }
-
-            .price-stable {
-                color: #6c757d;
-            }
-
-            .commodity-price {
-                font-size: 1.4rem;
-                font-weight: 700;
-            }
-
-            .news-item {
-                border-left: 3px solid #28a745;
-                padding-left: 15px;
-                transition: all 0.3s ease;
-            }
-
-            .news-item:hover {
-                background-color: #f8f9fa;
-                border-left-color: #218838;
+            .feature-icon {
+                font-size: 3rem;
+                margin-bottom: 20px;
+                color: var(--primary-color);
             }
 
             @media (max-width: 768px) {
@@ -323,8 +381,14 @@
                     width: 100%;
                 }
 
-                .commodity-price {
-                    font-size: 1.2rem;
+                #chatbot-modal {
+                    width: 90%;
+                    right: 5%;
+                    height: 70vh;
+                }
+
+                .message-bubble {
+                    max-width: 90%;
                 }
             }
         </style>
@@ -342,16 +406,13 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <div class="navbar-nav me-auto">
                         <a class="btn btn-outline-light nav-button" href="opportunities.jsp">
-                            <i class="fas fa-book"></i> Opportunities  
+                            <i class="fas fa-briefcase"></i> Opportunities  
                         </a>
-                        <a class="btn btn-outline-light nav-button" href="learning_support.jsp">
-                            <i class="fas fa-pen"></i> learning hub
+                        <a class="btn btn-outline-light nav-button" href="learning-materials">
+                            <i class="fas fa-graduation-cap"></i> Learning Hub
                         </a>
                         <a class="btn btn-outline-light nav-button" href="Product_lising.jsp">
                             <i class="fas fa-store"></i> All Products
-                        </a>
-                        <a class="btn btn-outline-light nav-button" href="testMarketstack.jsp">
-                            <i class="fas fa-store"></i> test yahoo
                         </a>
 
                         <% if (isLoggedIn) { %>
@@ -419,227 +480,122 @@
                         </button>
                     </form>
                 </div>
-
             </div>
         </div>
 
-        <!-- 🌍 Market Trends Section -->
-        <section class="market-trends py-5">
-            <div class="container">
-                <div class="row">
-                    <div class="col-12 text-center mb-5">
-                        <h2 class="text-success">
-                            <i class="fas fa-chart-line me-2"></i>Agricultural Market Trends
-                        </h2>
-                        <p class="lead">Stay updated with global agricultural markets and demands</p>
+        <!-- Features Section -->
+        <div class="container mb-5">
+            <div class="row text-center mb-5">
+                <div class="col-12">
+                    <h2 class="display-5 fw-bold text-success">Why Choose AgriYouth?</h2>
+                    <p class="lead">Empowering the next generation of agricultural entrepreneurs</p>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-handshake"></i>
+                        </div>
+                        <h4>Direct Marketplace</h4>
+                        <p>Connect directly with farmers and buyers. No middlemen, better prices for everyone.</p>
                     </div>
                 </div>
-
-                <!-- Commodity Prices -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card trend-card">
-                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-seedling me-2"></i>Global Agri-Stocks
-                                </h5>
-                                <small id="lastUpdated" class="fw-light">Loading...</small>
-                            </div>
-                            <div class="card-body">
-                                <div class="row" id="marketStackData">
-                                    <div class="col-12 text-center">
-                                        <div class="spinner-border text-success" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p class="mt-2">Loading global market data...</p>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-graduation-cap"></i>
                         </div>
+                        <h4>Learning Hub</h4>
+                        <p>Access educational resources, tutorials, and expert guidance to grow your agri-business.</p>
                     </div>
                 </div>
-                <!-- Market News & Trends -->
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <div class="card trend-card h-100">
-                            <div class="card-header bg-info text-white">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-newspaper me-2"></i>Latest Market News
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="marketNews">
-                                    <div class="text-center">
-                                        <div class="spinner-border text-info" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p class="mt-2">Loading news...</p>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-briefcase"></i>
                         </div>
-                    </div>
-
-                    <!-- Price Trends -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card trend-card h-100">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-chart-bar me-2"></i>Local Price Trends
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="priceTrends">
-                                    <div class="text-center">
-                                        <div class="spinner-border text-warning" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p class="mt-2">Loading trends...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <h4>Opportunities</h4>
+                        <p>Discover jobs, internships, grants, and training opportunities in agriculture.</p>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- Main Content -->
+        <!-- Featured Products -->
         <div class="container mb-5">
-            <div class="row">
-                <!-- Filters Sidebar -->
-                <div class="col-md-3">
-                    <div class="filter-sidebar">
-                        <div class="filter-header">
-                            <h5><i class="fas fa-filter"></i> Filters</h5>
-                        </div>
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2 class="fw-bold text-success">Featured Products</h2>
+                    <p class="text-muted">Fresh from our local farmers</p>
+                </div>
+            </div>
 
-                        <!-- Category Filter -->
-                        <div class="mb-4">
-                            <h6>Category</h6>
-                            <%
-                                try {
-                                    Statement catStmt = conn.createStatement();
-                                    ResultSet catRs = catStmt.executeQuery("SELECT DISTINCT category FROM products WHERE is_available = 1");
-                                    while (catRs.next()) {
-                                        String category = catRs.getString("category");
-                            %>
-                            <div class="form-check">
-                                <input class="form-check-input category-filter" type="checkbox" value="<%=category%>" id="cat-<%=category.replace(" ", "-")%>">
-                                <label class="form-check-label" for="cat-<%=category.replace(" ", "-")%>">
-                                    <%=category%>
-                                </label>
+            <div class="row g-4" id="productList">
+                <%
+                    if (rs != null) {
+                        while (rs.next()) {
+                            int id = rs.getInt("id");
+                            String name = rs.getString("name");
+                            String desc = rs.getString("description");
+                            double price = rs.getDouble("price");
+                            String category = rs.getString("category");
+                            double qty = rs.getDouble("quantity");
+                            String unit = rs.getString("unit");
+                            String img = "ImageServlet?id=" + id;
+                %>
+                <div class="col-md-4 col-sm-6 product-item">
+                    <div class="card product-card h-100">
+                        <img src="<%=img%>" class="card-img-top product-image" alt="<%=name%>"
+                             onerror="this.src='https://placehold.co/300x200/28a745/ffffff?text=🌱'">
+                        <div class="card-body d-flex flex-column">
+                            <div class="mb-2">
+                                <span class="badge bg-success"><%=category%></span>
                             </div>
-                            <%
-                                    }
-                                    catRs.close();
-                                    catStmt.close();
-                                } catch (Exception e) {
-                                    out.println("Error fetching categories: " + e.getMessage());
-                                }
-                            %>
-                        </div>
-
-                        <!-- Price Range Filter -->
-                        <div class="mb-4">
-                            <h6>Price Range</h6>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span>M 0</span>
-                                <span>M 500</span>
-                            </div>
-                            <input type="range" class="form-range" id="priceRange" min="0" max="500" value="500">
-                            <div class="text-center mt-2">
-                                <small>Max: M <span id="priceRangeValue">500</span></small>
+                            <h5 class="card-title"><%=name%></h5>
+                            <p class="card-text flex-grow-1"><%=desc.length() > 100 ? desc.substring(0, 100) + "..." : desc%></p>
+                            <div class="mt-auto">
+                                <p class="text-success fw-bold mb-1">M <%=String.format("%.2f", price)%></p>
+                                <p class="text-muted small mb-2"><%=qty%> <%=unit%> available</p>
+                                <button class="btn btn-outline-success btn-sm w-100 add-to-cart-btn" 
+                                        data-id="<%=id%>" 
+                                        data-name="<%=name%>" 
+                                        data-price="<%=price%>" 
+                                        data-image="ImageServlet?id=<%=id%>">
+                                    <i class="fas fa-cart-plus"></i> Add to Cart
+                                </button>
                             </div>
                         </div>
-
-                        <!-- Sort Options -->
-                        <div class="mb-4">
-                            <h6>Sort By</h6>
-                            <select class="form-select" id="sortSelect">
-                                <option value="newest">Newest First</option>
-                                <option value="price_low">Price: Low to High</option>
-                                <option value="price_high">Price: High to Low</option>
-                                <option value="name_asc">Name: A to Z</option>
-                                <option value="name_desc">Name: Z to A</option>
-                            </select>
-                        </div>
-
-                        <!-- Apply Filters Button -->
-                        <button id="applyFilters" class="btn btn-success w-100">
-                            <i class="fas fa-check"></i> Apply Filters
-                        </button>
-
-                        <!-- Reset Filters Button -->
-                        <button id="resetFilters" class="btn btn-outline-secondary w-100 mt-2">
-                            <i class="fas fa-redo"></i> Reset Filters
-                        </button>
                     </div>
                 </div>
+                <%
+                        }
+                    }
+                %>
+            </div>
 
-                <!-- Products Grid -->
-                <div class="col-md-9">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h3>Featured Products</h3>
-                        <div class="d-flex align-items-center">
-                            <span class="me-2">View:</span>
-                            <select class="form-select form-select-sm w-auto" id="viewSelect">
-                                <option value="grid">Grid View</option>
-                                <option value="list">List View</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row g-4" id="productList">
-                        <%
-                            if (rs != null) {
-                                while (rs.next()) {
-                                    int id = rs.getInt("id");
-                                    String name = rs.getString("name");
-                                    String desc = rs.getString("description");
-                                    double price = rs.getDouble("price");
-                                    String category = rs.getString("category");
-                                    double qty = rs.getDouble("quantity");
-                                    String unit = rs.getString("unit");
-                                    String img = "ImageServlet?id=" + id;
-                        %>
-                        <div class="col-md-4 col-sm-6 product-item">
-                            <div class="card product-card h-100">
-                                <img src="<%=img%>" class="card-img-top product-image" alt="<%=name%>">
-                                <div class="card-body d-flex flex-column">
-                                    <div class="mb-2">
-                                        <span class="badge bg-success"><%=category%></span>
-                                    </div>
-                                    <h5 class="card-title"><%=name%></h5>
-                                    <p class="card-text flex-grow-1"><%=desc.length() > 100 ? desc.substring(0, 100) + "..." : desc%></p>
-                                    <div class="mt-auto">
-                                        <p class="text-success fw-bold mb-1">M <%=String.format("%.2f", price)%></p>
-                                        <p class="text-muted small mb-2"><%=qty%> <%=unit%> available</p>
-                                        <button class="btn btn-outline-success btn-sm w-100 add-to-cart-btn" 
-                                                data-id="<%=id%>" 
-                                                data-name="<%=name%>" 
-                                                data-price="<%=price%>" 
-                                                data-image="<%=img%>">
-                                            <i class="fas fa-cart-plus"></i> Add to Cart
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <%
-                                }
-                            }
-                        %>
-                    </div>
-
-                    <!-- Loading Indicator -->
-                    <div id="loadingIndicator" class="text-center mt-4 d-none">
-                        <div class="spinner-border text-success" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading products...</p>
-                    </div>
+            <div class="row mt-4">
+                <div class="col-12 text-center">
+                    <a href="Product_lising.jsp" class="btn btn-success btn-lg">
+                        <i class="fas fa-store me-2"></i> View All Products
+                    </a>
                 </div>
+            </div>
+        </div>
+
+        <!-- Call to Action -->
+        <div class="bg-success text-white py-5">
+            <div class="container text-center">
+                <h2 class="display-6 fw-bold mb-3">Ready to Grow Your Agri-Business?</h2>
+                <p class="lead mb-4">Join thousands of farmers and buyers in our thriving marketplace</p>
+                <% if (!isLoggedIn) { %>
+                <button class="btn btn-light btn-lg me-3" data-bs-toggle="modal" data-bs-target="#registerModal">
+                    <i class="fas fa-user-plus me-2"></i> Get Started
+                </button>
+                <% } %>
+                <a href="learning-materials" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-graduation-cap me-2"></i> Learn More
+                </a>
             </div>
         </div>
 
@@ -651,21 +607,22 @@
         <!-- 🌱 AGRIBOT MODAL -->
         <div id="chatbot-modal">
             <div class="chat-header">
-                <span><i class="fas fa-seedling me-2"></i> AgriBot Assistant</span>
+                <span><i class="fas fa-seedling me-2"></i> AgriBot - Powered by Google Gemini</span>
                 <button type="button" class="btn-close btn-close-white" aria-label="Close" onclick="closeChatbot()"></button>
             </div>
 
             <div id="chat-window">
-                <div class="chat-message chat-bot">
-                    Welcome! I'm AgriBot — your smart farming assistant.  
-                    Ask me about crops, livestock, or agri-market trends!
+                <div class="message-container message-bot">
+                    <div class="message-bubble">
+                        Welcome! I'm AgriBot, powered by Google Gemini. Ask me about crops, livestock, agri-market trends, or anything related to agriculture!
+                    </div>
+                    <div class="message-sender">AgriBot</div>
                 </div>
             </div>
 
             <div class="chat-input">
-                <input type="text" id="chat-input-text" class="form-control" placeholder="Ask me anything..." onkeypress="if (event.key === 'Enter')
-                            sendMessage()">
-                <button class="btn btn-agri-primary" onclick="sendMessage()">
+                <input type="text" id="chat-input-text" class="form-control" placeholder="Ask me anything..." onkeypress="if (event.key === 'Enter') sendMessage()">
+                <button class="btn" onclick="sendMessage()">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
@@ -675,7 +632,7 @@
         <div class="cart-overlay" id="cartOverlay"></div>
 
         <!-- Cart Sidebar -->
-        <div class="cart-sidebar position-fixed top-0 end-0 h-100 bg-white p-4 overflow-auto" id="cartSidebar">
+        <div class="cart-sidebar position-fixed top-0 end-0 h-100 bg-white p-4 overflow-auto shadow-lg" id="cartSidebar">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h4 class="m-0"><i class="fas fa-shopping-cart me-2"></i> Your Cart</h4>
                 <button class="btn btn-sm btn-outline-secondary rounded-circle" onclick="closeCart()">
@@ -854,7 +811,6 @@
             </div>
         </div>
 
-
         <footer class="bg-dark text-white py-4 mt-5 text-center">
             <p class="mb-0">© 2025 AgriYouth Marketplace. All rights reserved.</p>
         </footer>
@@ -863,329 +819,305 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
         <script>
-                    // MarketStack API Configuration
-                    const MARKETSTACK_API_KEY = '3d9a370c91d3274063b1b58608f6ece3';
-                    const MARKETSTACK_BASE_URL = 'http://api.marketstack.com/v2/eod';
+            // Cart functionality - COMPLETELY FIXED VERSION
+            function addToCart(id, name, price, image) {
+                console.log('➕ Adding to cart - ID:', id, 'Name:', name, 'Type:', typeof id);
 
-// Market Trends JavaScript
-                    document.addEventListener('DOMContentLoaded', function () {
-                        loadMarketStackData();
-                        loadMarketNews();
-                        loadPriceTrends();
-                        // Refresh data every 10 minutes
-                        setInterval(loadMarketStackData, 600000);
-                    });
+                // Ensure ID is a number
+                const productId = parseInt(id);
+                if (isNaN(productId) || productId <= 0) {
+                    console.error('❌ Invalid product ID for adding:', id);
+                    alert('Invalid product ID');
+                    return;
+                }
 
-                    async function loadMarketStackData() {
-                        try {
-                            const response = await fetch('market-data');
-                            const data = await response.json();
+                $.post("CartServlet", {
+                    action: "add",
+                    id: productId,
+                    qty: 1
+                }, function (data) {
+                    console.log('Cart response:', data);
+                    if (data.success) {
+                        updateCartDisplay(data.cart);
+                        showToast(name + ' added to cart!');
+                    } else {
+                        alert(data.message);
+                    }
+                }, "json").fail(function (xhr, status, error) {
+                    console.error('Cart AJAX error:', error);
+                    alert('Error adding to cart. Please try again.');
+                });
+            }
 
-                            if (data.status === 'success') {
-                                displayMarketStackData(data);
-                            } else {
-                                showFallbackMarketData();
-                            }
-                        } catch (error) {
-                            console.error('Error fetching market data:', error);
-                            showFallbackMarketData();
+            function removeFromCart(id) {
+                console.log('🗑️ removeFromCart called with:', id, 'Type:', typeof id);
+                
+                // Handle the ID parameter properly
+                let productId;
+                
+                if (typeof id === 'number') {
+                    productId = id;
+                } else if (typeof id === 'string') {
+                    // Remove any non-numeric characters and parse
+                    productId = parseInt(id.replace(/\D/g, ''));
+                } else {
+                    console.error('❌ Invalid ID parameter:', id);
+                    alert('Invalid product ID');
+                    return;
+                }
+                
+                console.log('🛑 Processing removal for product ID:', productId);
+                
+                if (isNaN(productId) || productId <= 0) {
+                    console.error('❌ Invalid product ID after processing:', productId);
+                    alert('Invalid product ID');
+                    return;
+                }
+
+                $.post("CartServlet", {
+                    action: "remove",
+                    id: productId
+                }, function (data) {
+                    console.log('Remove response:', data);
+                    if (data.success) {
+                        updateCartDisplay(data.cart);
+                        showToast('Item removed from cart');
+                        
+                        if (!data.cart || data.cart.length === 0) {
+                            closeCart();
                         }
+                    } else {
+                        alert(data.message);
                     }
+                }, "json").fail(function (xhr, status, error) {
+                    console.error('Remove cart error:', error);
+                    alert('Error removing item from cart.');
+                });
+            }
 
-                    function displayMarketStackData(data) {
-                        const marketData = data.data.market;
-                        let html = '';
+            function updateCartDisplay(cart) {
+                let cartItems = $("#cartItems");
+                cartItems.html("");
+                let total = 0;
 
-                        marketData.forEach(stock => {
-                            const change = ((stock.close - stock.open) / stock.open * 100);
-                            const isPositive = change >= 0;
-                            const changeFormatted = change.toFixed(2);
-                            const sign = isPositive ? '+' : '';
+                console.log('🛒 Updating cart display with:', cart);
 
-                            html += `
-            <div class="col-md-3 col-6 mb-3">
-                <div class="card h-100 border-0">
-                    <div class="card-body text-center p-3">
-                        <h6 class="card-title text-dark mb-2">${stock.symbol}</h6>
-                        <div class="commodity-price ${isPositive ? 'price-up' : 'price-down'}">
-                            $${stock.close.toFixed(2)}
-                        </div>
-                        <small class="text-muted">${stock.category}</small>
-                        <div class="mt-2">
-                            <small class="${isPositive ? 'price-up' : 'price-down'}">
-                                <i class="fas fa-arrow-${isPositive ? 'up' : 'down'} me-1"></i>
-            ${sign}${changeFormatted}%
-                            </small>
-                        </div>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                Vol: ${(stock.volume / 1000000).toFixed(1)}M
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-                        });
+                if (!cart || cart.length === 0) {
+                    cartItems.append('<p class="text-muted text-center py-4" id="emptyCartMessage">Your cart is empty</p>');
+                    $("#cartSummary").addClass("d-none");
+                    $("#cartCount").text("0");
+                    return;
+                }
 
-                        document.getElementById('marketStackData').innerHTML = html;
-                        document.getElementById('lastUpdated').textContent = `Updated: ${data.lastUpdated} (${data.source})`;
+                $("#emptyCartMessage").addClass("d-none");
+
+                // Filter valid items
+                const validCartItems = cart.filter(item => {
+                    const isValid = item && item.id !== undefined && item.id !== null && !isNaN(item.id) && item.id > 0;
+                    if (!isValid) {
+                        console.warn('⚠️ Filtering out invalid cart item:', item);
                     }
+                    return isValid;
+                });
 
-                    function showFallbackMarketData() {
-                        // Use the fallback data from your servlet
-                        const fallbackData = {
-                            status: "success",
-                            source: "fallback",
-                            lastUpdated: new Date().toISOString().split('T')[0],
-                            data: {
-                                market: [
-                                    {"symbol": "DE", "date": "2024-01-01", "open": 385.5, "high": 388.2, "low": 382.1, "close": 386.75, "volume": 2450000, "currency": "USD", "category": "Agri Machinery"},
-                                    {"symbol": "ADM", "date": "2024-01-01", "open": 58.2, "high": 59.1, "low": 57.8, "close": 58.9, "volume": 3200000, "currency": "USD", "category": "Grain Processing"},
-                                    {"symbol": "BG", "date": "2024-01-01", "open": 92.5, "high": 93.8, "low": 91.9, "close": 93.2, "volume": 1100000, "currency": "USD", "category": "Grain Trading"},
-                                    {"symbol": "CTVA", "date": "2024-01-01", "open": 54.1, "high": 55.0, "low": 53.7, "close": 54.6, "volume": 2800000, "currency": "USD", "category": "Seeds & Crop Protection"}
-                                ]
-                            }
-                        };
+                if (validCartItems.length === 0) {
+                    cartItems.append('<p class="text-muted text-center py-4">Cart contains invalid items</p>');
+                    $("#cartSummary").addClass("d-none");
+                    $("#cartCount").text("0");
+                    return;
+                }
 
-                        displayMarketStackData(fallbackData);
-                        document.getElementById('lastUpdated').textContent = 'Updated: Fallback Data';
-                    }
+                validCartItems.forEach(item => {
+                    const price = parseFloat(item.price) || 0;
+                    const quantity = parseInt(item.qty) || 0;
+                    const itemTotal = price * quantity;
+                    total += itemTotal;
 
-// Keep your existing functions for news and trends
-                    function loadMarketNews() {
-                        const newsItems = [
-                            {
-                                title: 'Global Agri-Stocks Show Mixed Performance',
-                                source: 'MarketStack',
-                                date: 'Live',
-                                summary: 'Agricultural equipment and processing stocks trading actively'
-                            },
-                            {
-                                title: 'Lesotho Farmers Adopt New Irrigation Techniques',
-                                source: 'Local Agriculture',
-                                date: '5 hours ago',
-                                summary: 'Water-efficient methods boosting yields'
-                            },
-                            {
-                                title: 'Organic Farming Demand Increases in Southern Africa',
-                                source: 'Market Watch',
-                                date: '1 day ago',
-                                summary: 'Consumers driving organic produce market'
-                            },
-                            {
-                                title: 'New Export Opportunities for African Produce',
-                                source: 'Trade Digest',
-                                date: '2 days ago',
-                                summary: 'European markets opening for African crops'
-                            }
-                        ];
+                    const imageUrl = `ImageServlet?id=${item.id}`;
+                    
+                    console.log('✅ Creating cart item:', item.name, 'ID:', item.id);
 
-                        let newsHtml = '';
-                        newsItems.forEach(news => {
-                            newsHtml += `
-            <div class="news-item mb-3">
-                <h6 class="mb-1 fw-bold">${news.title}</h6>
-                <p class="mb-1 small">${news.summary}</p>
-                <small class="text-muted">
-                    <i class="fas fa-source me-1"></i>${news.source} • 
-                    <i class="fas fa-clock me-1"></i>${news.date}
-                </small>
-            </div>
-        `;
-                        });
-
-                        document.getElementById('marketNews').innerHTML = newsHtml;
-                    }
-
-                    function loadPriceTrends() {
-                        const trends = [
-                            {product: 'Tomatoes', trend: 'up', change: 15, currentPrice: 12.50},
-                            {product: 'Potatoes', trend: 'down', change: 8, currentPrice: 8.75},
-                            {product: 'Onions', trend: 'up', change: 12, currentPrice: 9.25},
-                            {product: 'Cabbage', trend: 'stable', change: 2, currentPrice: 6.50},
-                            {product: 'Carrots', trend: 'up', change: 5, currentPrice: 7.80}
-                        ];
-
-                        let trendsHtml = '';
-                        trends.forEach(trend => {
-                            const icon = trend.trend === 'up' ? 'arrow-up' :
-                                    trend.trend === 'down' ? 'arrow-down' : 'minus';
-                            const color = trend.trend === 'up' ? 'success' :
-                                    trend.trend === 'down' ? 'danger' : 'warning';
-
-                            trendsHtml += `
-            <div class="trend-item mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-medium">${trend.product}</span>
-                    <span class="text-${color} fw-bold">
-                        <i class="fas fa-${icon} me-1"></i>
-            ${trend.change}%
-                    </span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">M ${trend.currentPrice.toFixed(2)}/kg</small>
-                    <div class="progress flex-grow-1 ms-2" style="height: 6px; max-width: 100px;">
-                        <div class="progress-bar bg-${color}" 
-                             style="width: ${Math.min(Math.abs(trend.change) * 3, 100)}%"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-                        });
-
-                        document.getElementById('priceTrends').innerHTML = trendsHtml;
-                    }
-                    // Cart functionality
-                    function addToCart(id, name, price, image) {
-                        console.log('Adding to cart:', id, name, price, image);
-
-                        $.post("CartServlet", {
-                            action: "add",
-                            id: id,
-                            qty: 1
-                        }, function (data) {
-                            console.log('Cart response:', data);
-                            if (data.success) {
-                                updateCartDisplay(data.cart);
-                                showToast(name + ' added to cart!');
-                            } else {
-                                alert(data.message);
-                            }
-                        }, "json").fail(function (xhr, status, error) {
-                            console.error('Cart AJAX error:', error);
-                            alert('Error adding to cart. Please try again.');
-                        });
-                    }
-
-                    function removeFromCart(id) {
-                        $.post("CartServlet", {
-                            action: "remove",
-                            id: id
-                        }, function (data) {
-                            if (data.success) {
-                                updateCartDisplay(data.cart);
-                                showToast('Item removed from cart');
-                                if (!data.cart || data.cart.length === 0) {
-                                    closeCart();
-                                }
-                            } else {
-                                alert(data.message);
-                            }
-                        }, "json").fail(function (xhr, status, error) {
-                            console.error('Remove cart error:', error);
-                            alert('Error removing item from cart.');
-                        });
-                    }
-
-                    function updateCartDisplay(cart) {
-                        let cartItems = $("#cartItems");
-                        cartItems.html("");
-                        let total = 0;
-
-                        if (!cart || cart.length === 0) {
-                            $("#emptyCartMessage").removeClass("d-none");
-                            $("#cartSummary").addClass("d-none");
-                            $("#cartCount").text("0");
-                            return;
-                        }
-
-                        $("#emptyCartMessage").addClass("d-none");
-
-                        cart.forEach(i => {
-                            const price = parseFloat(i.price) || 0;
-                            const quantity = parseInt(i.qty) || 0;
-                            const itemTotal = price * quantity;
-                            total += itemTotal;
-
-                            let imageUrl = i.image;
-                            if (!imageUrl) {
-                                imageUrl = 'ImageServlet?id=' + i.id;
-                            }
-
-                            cartItems.append(`
+                    // Use simple onclick approach with proper data-id
+                    const cartItemHtml = `
                         <div class="d-flex justify-content-between align-items-center border-bottom py-3">
                             <div class="d-flex align-items-center">
-                                <img src="${imageUrl}" class="cart-item-img rounded me-3" alt="${i.name}" 
-                                     onerror="this.onerror=null; this.src='https://placehold.co/60x60/cccccc/ffffff?text=No+Image'">
+                                <img src="${imageUrl}" 
+                                     class="cart-item-img rounded me-3" 
+                                     alt="${item.name}"
+                                     onerror="this.src='https://placehold.co/60x60/28a745/ffffff?text=🌱'"
+                                     style="width: 60px; height: 60px; object-fit: cover;">
                                 <div>
-                                    <strong class="d-block">${i.name}</strong>
+                                    <strong class="d-block">${item.name}</strong>
                                     <small class="text-muted">M ${price.toFixed(2)} × ${quantity}</small>
+                                    <small class="text-success d-block">M ${itemTotal.toFixed(2)}</small>
                                 </div>
                             </div>
-                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${i.id})">
+                            <button class="btn btn-sm btn-outline-danger remove-cart-btn" 
+                                    data-product-id="${item.id}">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
-                    `);
-                        });
+                    `;
+                    
+                    cartItems.append(cartItemHtml);
+                });
 
-                        $("#cartCount").text(cart.reduce((sum, i) => sum + (parseInt(i.qty) || 0), 0));
-                        $("#cartSubtotal").text("M " + total.toFixed(2));
-                        $("#cartTotal").text("M " + total.toFixed(2));
-                        $("#cartSummary").removeClass("d-none");
-                    }
+                // Update cart count and totals
+                const itemCount = validCartItems.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0);
+                $("#cartCount").text(itemCount);
+                $("#cartSubtotal").text("M " + total.toFixed(2));
+                $("#cartTotal").text("M " + total.toFixed(2));
+                $("#cartSummary").removeClass("d-none");
+            }
 
-                    function openCart() {
-                        $("#cartSidebar").addClass("open");
-                        $("#cartOverlay").addClass("active");
-                        $("body").css("overflow", "hidden");
-                    }
+            // Cart UI functions
+            function openCart() {
+                $("#cartSidebar").addClass("open");
+                $("#cartOverlay").addClass("active");
+                $("body").css("overflow", "hidden");
+            }
 
-                    function closeCart() {
-                        $("#cartSidebar").removeClass("open");
-                        $("#cartOverlay").removeClass("active");
-                        $("body").css("overflow", "auto");
-                    }
+            function closeCart() {
+                $("#cartSidebar").removeClass("open");
+                $("#cartOverlay").removeClass("active");
+                $("body").css("overflow", "auto");
+            }
 
-                    function showToast(message) {
-                        const toast = document.createElement('div');
-                        toast.className = 'position-fixed bottom-0 end-0 p-3';
-                        toast.style.zIndex = '1060';
-                        toast.innerHTML = `
-                    <div class="toast show" role="alert">
-                        <div class="toast-header bg-success text-white">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <strong class="me-auto">Success</strong>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            function showToast(message) {
+                try {
+                    const toast = document.createElement('div');
+                    toast.className = 'position-fixed bottom-0 end-0 p-3';
+                    toast.style.zIndex = '1060';
+                    toast.innerHTML = `
+                        <div class="toast show" role="alert">
+                            <div class="toast-header bg-success text-white">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong class="me-auto">Success</strong>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                            </div>
+                            <div class="toast-body">${message}</div>
                         </div>
-                        <div class="toast-body">${message}</div>
-                    </div>
-                `;
-                        document.body.appendChild(toast);
+                    `;
+                    document.body.appendChild(toast);
 
-                        setTimeout(() => {
+                    setTimeout(() => {
+                        if (toast && toast.parentNode) {
                             toast.remove();
-                        }, 3000);
+                        }
+                    }, 3000);
+                } catch (error) {
+                    console.log('Toast error, using alert:', error);
+                    alert(message);
+                }
+            }
+
+            // Event Listeners
+            $(document).ready(function () {
+                console.log('📋 Document ready - initializing cart...');
+
+                // Load initial cart
+                $.get("CartServlet", {action: "get"}, function (data) {
+                    console.log('Initial cart data:', data);
+                    if (data.success) {
+                        updateCartDisplay(data.cart);
                     }
+                }, "json").fail(function (xhr, status, error) {
+                    console.error("Error loading cart:", error);
+                });
 
-                    // Checkout button handler
-                    $("#checkoutBtn").click(function (e) {
-                        e.preventDefault();
-                        console.log('Checkout button clicked');
+                // Add to cart buttons
+                $(document).on("click", ".add-to-cart-btn", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const id = $(this).data("id");
+                    const name = $(this).data("name");
+                    const price = $(this).data("price");
+                    const image = $(this).data("image");
+                    
+                    console.log('🛒 Add to cart clicked:', { id, name, price, image });
+                    addToCart(id, name, price, image);
+                });
 
-                        // First validate cart with CartServlet
-                        $.post("CartServlet", {action: "checkout"}, function (cartData) {
-                            console.log('Checkout validation response:', cartData);
-                            if (cartData.success) {
-                                // Cart is valid, show checkout form
-                                showCheckoutForm();
-                            } else {
-                                alert("❌ " + cartData.message);
-                            }
-                        }, "json").fail(function (xhr, status, error) {
-                            console.error('Checkout validation error:', error);
-                            alert('Error validating cart. Please try again.');
-                        });
-                    });
+                // Remove cart items with proper event handling
+                $(document).on("click", ".remove-cart-btn", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const productId = $(this).data("product-id");
+                    console.log('🛑 Remove button clicked - Product ID:', productId, 'Type:', typeof productId);
+                    
+                    if (productId && !isNaN(productId)) {
+                        removeFromCart(productId);
+                    } else {
+                        console.error('❌ Invalid product ID from remove button:', productId);
+                        alert('Error: Invalid product ID');
+                    }
+                });
 
-                    // Show checkout form modal
-                    function showCheckoutForm() {
-                        // Get user info from session
-                        const userEmail = '<%= session.getAttribute("userEmail") != null ? session.getAttribute("userEmail") : ""%>';
-                        const userName = '<%= session.getAttribute("userName") != null ? session.getAttribute("userName") : ""%>';
+                // Cart button
+                $("#cartButton").click(function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Refresh cart before opening
+                    $.get("CartServlet", {action: "get"}, function (data) {
+                        if (data.success) {
+                            updateCartDisplay(data.cart);
+                            openCart();
+                        }
+                    }, "json");
+                });
 
-                        const checkoutForm = `
+                // Cart overlay
+                $("#cartOverlay").click(function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeCart();
+                });
+
+                // Search form
+                $("#searchForm").on("submit", function (e) {
+                    e.preventDefault();
+                    const query = $("#searchInput").val().trim();
+                    if (query) {
+                        searchProducts(query);
+                    }
+                });
+            });
+
+            // Search products function
+            function searchProducts(query) {
+                window.location.href = 'Product_lising.jsp?search=' + encodeURIComponent(query);
+            }
+
+            // Checkout functionality
+            $("#checkoutBtn").click(function (e) {
+                e.preventDefault();
+                console.log('Checkout button clicked');
+
+                // First validate cart with CartServlet
+                $.post("CartServlet", {action: "checkout"}, function (cartData) {
+                    console.log('Checkout validation response:', cartData);
+                    if (cartData.success) {
+                        // Cart is valid, show checkout form
+                        showCheckoutForm();
+                    } else {
+                        alert("❌ " + cartData.message);
+                    }
+                }, "json").fail(function (xhr, status, error) {
+                    console.error('Checkout validation error:', error);
+                    alert('Error validating cart. Please try again.');
+                });
+            });
+
+            // Show checkout form modal
+            function showCheckoutForm() {
+                // Get user info from session
+                const userEmail = '<%= session.getAttribute("userEmail") != null ? session.getAttribute("userEmail") : ""%>';
+                const userName = '<%= session.getAttribute("userName") != null ? session.getAttribute("userName") : ""%>';
+
+                const checkoutForm = `
                     <div class="modal fade" id="checkoutModal" tabindex="-1">
                         <div class="modal-dialog modal-lg">
                             <div class="modal-content">
@@ -1254,87 +1186,90 @@
                     </div>
                 `;
 
-                        // Remove existing modal if any
-                        if ($('#checkoutModal').length) {
-                            $('#checkoutModal').remove();
-                        }
+                // Remove existing modal if any
+                if ($('#checkoutModal').length) {
+                    $('#checkoutModal').remove();
+                }
 
-                        // Add modal to page
-                        $('body').append(checkoutForm);
+                // Add modal to page
+                $('body').append(checkoutForm);
 
-                        // Show modal
-                        const checkoutModal = new bootstrap.Modal(document.getElementById('checkoutModal'));
-                        checkoutModal.show();
+                // Show modal
+                const checkoutModal = new bootstrap.Modal(document.getElementById('checkoutModal'));
+                checkoutModal.show();
 
-                        // Focus on first field
-                        setTimeout(() => {
-                            $('#checkoutForm input[name="firstName"]').focus();
-                        }, 500);
+                // Focus on first field
+                setTimeout(() => {
+                    $('#checkoutForm input[name="firstName"]').focus();
+                }, 500);
+            }
+
+            // Process final checkout with CheckoutServlet
+            function processCheckout() {
+                const form = document.getElementById('checkoutForm');
+
+                // Basic form validation
+                if (!form.checkValidity()) {
+                    // Show validation messages
+                    form.classList.add('was-validated');
+                    form.reportValidity();
+                    return;
+                }
+
+                const formData = new FormData(form);
+
+                // Show loading state
+                const confirmBtn = $('#confirmCheckoutBtn');
+                const originalText = confirmBtn.html();
+                confirmBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
+
+                console.log('Sending checkout data:', {
+                    firstName: formData.get('firstName'),
+                    lastName: formData.get('lastName'),
+                    email: formData.get('email'),
+                    deliveryAddress: formData.get('deliveryAddress'),
+                    phoneNumber: formData.get('phoneNumber'),
+                    paymentMethod: formData.get('paymentMethod')
+                });
+
+                $.post("CheckoutServlet", {
+                    firstName: formData.get('firstName'),
+                    lastName: formData.get('lastName'),
+                    email: formData.get('email'),
+                    deliveryAddress: formData.get('deliveryAddress'),
+                    phoneNumber: formData.get('phoneNumber'),
+                    paymentMethod: formData.get('paymentMethod')
+                }, function (response) {
+                    console.log('Checkout response:', response);
+
+                    if (response.success) {
+                        // Success - show confirmation
+                        showOrderConfirmation(response.orderId);
+
+                        // Close modals
+                        bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
+                        closeCart();
+
+                        // Clear cart
+                        $("#cartCount").text("0");
+                        $("#cartItems").html('<p class="text-muted text-center py-4" id="emptyCartMessage">Your cart is empty</p>');
+                        $("#cartSummary").addClass("d-none");
+                        
+                        // Clear session cart
+                        $.post("CartServlet", {action: "clear"});
+                    } else {
+                        alert("❌ " + response.message);
+                        confirmBtn.prop('disabled', false).html(originalText);
                     }
+                }, "json").fail(function (xhr, status, error) {
+                    console.error('Checkout error:', error);
+                    alert('Error processing checkout. Please try again.');
+                    confirmBtn.prop('disabled', false).html(originalText);
+                });
+            }
 
-                    // Process final checkout with CheckoutServlet
-                    function processCheckout() {
-                        const form = document.getElementById('checkoutForm');
-
-                        // Basic form validation
-                        if (!form.checkValidity()) {
-                            // Show validation messages
-                            form.classList.add('was-validated');
-                            form.reportValidity();
-                            return;
-                        }
-
-                        const formData = new FormData(form);
-
-                        // Show loading state
-                        const confirmBtn = $('#confirmCheckoutBtn');
-                        const originalText = confirmBtn.html();
-                        confirmBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
-
-                        console.log('Sending checkout data:', {
-                            firstName: formData.get('firstName'),
-                            lastName: formData.get('lastName'),
-                            email: formData.get('email'),
-                            deliveryAddress: formData.get('deliveryAddress'),
-                            phoneNumber: formData.get('phoneNumber'),
-                            paymentMethod: formData.get('paymentMethod')
-                        });
-
-                        $.post("CheckoutServlet", {
-                            firstName: formData.get('firstName'),
-                            lastName: formData.get('lastName'),
-                            email: formData.get('email'),
-                            deliveryAddress: formData.get('deliveryAddress'),
-                            phoneNumber: formData.get('phoneNumber'),
-                            paymentMethod: formData.get('paymentMethod')
-                        }, function (response) {
-                            console.log('Checkout response:', response);
-
-                            if (response.success) {
-                                // Success - show confirmation
-                                showOrderConfirmation(response.orderId);
-
-                                // Close modals
-                                bootstrap.Modal.getInstance(document.getElementById('checkoutModal')).hide();
-                                closeCart();
-
-                                // Clear cart
-                                $("#cartCount").text("0");
-                                $("#cartItems").html('<p class="text-muted text-center py-4" id="emptyCartMessage">Your cart is empty</p>');
-                                $("#cartSummary").addClass("d-none");
-                            } else {
-                                alert("❌ " + response.message);
-                                confirmBtn.prop('disabled', false).html(originalText);
-                            }
-                        }, "json").fail(function (xhr, status, error) {
-                            console.error('Checkout error:', error);
-                            alert('Error processing checkout. Please try again.');
-                            confirmBtn.prop('disabled', false).html(originalText);
-                        });
-                    }
-
-                    function showOrderConfirmation(orderId) {
-                        const confirmation = `
+            function showOrderConfirmation(orderId) {
+                const confirmation = `
                     <div class="modal fade" id="confirmationModal" tabindex="-1">
                         <div class="modal-dialog">
                             <div class="modal-content">
@@ -1364,146 +1299,30 @@
                     </div>
                 `;
 
-                        // Remove existing modal if any
-                        if ($('#confirmationModal').length) {
-                            $('#confirmationModal').remove();
-                        }
+                // Remove existing modal if any
+                if ($('#confirmationModal').length) {
+                    $('#confirmationModal').remove();
+                }
 
-                        // Add modal to page
-                        $('body').append(confirmation);
+                // Add modal to page
+                $('body').append(confirmation);
 
-                        // Show modal
-                        const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
-                        confirmationModal.show();
-                    }
-
-                    // Event Listeners
-                    $(document).ready(function () {
-                        // Add to cart buttons
-                        $(document).on("click", ".add-to-cart-btn", function () {
-                            const id = $(this).data("id");
-                            const name = $(this).data("name");
-                            const price = $(this).data("price");
-                            const image = $(this).data("image");
-                            addToCart(id, name, price, image);
-                        });
-
-                        // Cart button
-                        $("#cartButton").click(function () {
-                            openCart();
-                        });
-
-                        // Cart overlay
-                        $("#cartOverlay").click(function () {
-                            closeCart();
-                        });
-
-                        // Search form
-                        $("#searchForm").on("submit", function (e) {
-                            e.preventDefault();
-                            const query = $("#searchInput").val().trim();
-                            if (query) {
-                                searchProducts(query);
-                            }
-                        });
-
-                        // Price range display
-                        $("#priceRange").on("input", function () {
-                            $("#priceRangeValue").text($(this).val());
-                        });
-
-                        // Apply filters
-                        $("#applyFilters").click(function () {
-                            applyFilters();
-                        });
-
-                        // Reset filters
-                        $("#resetFilters").click(function () {
-                            resetFilters();
-                        });
-
-                        // View selector
-                        $("#viewSelect").change(function () {
-                            const view = $(this).val();
-                            if (view === "list") {
-                                $("#productList").addClass("list-view");
-                                $(".product-item").addClass("col-12");
-                                $(".product-card").addClass("flex-row");
-                            } else {
-                                $("#productList").removeClass("list-view");
-                                $(".product-item").removeClass("col-12");
-                                $(".product-card").removeClass("flex-row");
-                            }
-                        });
-
-                        // Load initial cart
-                        $.get("CartServlet", {action: "get"}, function (data) {
-                            if (data.success) {
-                                updateCartDisplay(data.cart);
-                            }
-                        }, "json").fail(function (xhr, status, error) {
-                            console.error("Error loading cart:", error);
-                        });
-                    });
-
-                    // Search products function
-                    function searchProducts(query) {
-                        $("#loadingIndicator").removeClass("d-none");
-                        $("#productList").addClass("opacity-25");
-
-                        $.get("ProductSearchServlet", {q: query}, function (data) {
-                            $("#productList").html(data);
-                        }).always(function () {
-                            $("#loadingIndicator").addClass("d-none");
-                            $("#productList").removeClass("opacity-25");
-                        });
-                    }
-
-                    // Apply filters function
-                    function applyFilters() {
-                        const selectedCategories = [];
-                        $(".category-filter:checked").each(function () {
-                            selectedCategories.push($(this).val());
-                        });
-
-                        const maxPrice = $("#priceRange").val();
-                        const sortBy = $("#sortSelect").val();
-
-                        $("#loadingIndicator").removeClass("d-none");
-                        $("#productList").addClass("opacity-25");
-
-                        $.get("ProductFilterServlet", {
-                            categories: selectedCategories.join(","),
-                            maxPrice: maxPrice,
-                            sortBy: sortBy
-                        }, function (data) {
-                            $("#productList").html(data);
-                        }).always(function () {
-                            $("#loadingIndicator").addClass("d-none");
-                            $("#productList").removeClass("opacity-25");
-                        });
-                    }
-
-                    // Reset filters function
-                    function resetFilters() {
-                        $(".category-filter").prop("checked", false);
-                        $("#priceRange").val(500);
-                        $("#priceRangeValue").text("500");
-                        $("#sortSelect").val("newest");
-
-                        $("#loadingIndicator").removeClass("d-none");
-                        $("#productList").addClass("opacity-25");
-
-                        $.get("ProductFilterServlet", function (data) {
-                            $("#productList").html(data);
-                        }).always(function () {
-                            $("#loadingIndicator").addClass("d-none");
-                            $("#productList").removeClass("opacity-25");
-                        });
-                    }
+                // Show modal
+                const confirmationModal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+                confirmationModal.show();
+            }
         </script>
 
+        <!-- 🌱 AGRIBOT FUNCTIONALITY -->
         <script>
+            const GEMINI_API_KEY = "AIzaSyASe6B-IW9Vf1AKTID9yYVLwpGdQzxIG2s";
+            const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY;
+
+            let chatHistory = [
+                {role: "user", parts: [{text: "You are AgriBot, a friendly AI assistant for farmers in Lesotho. Focus on agriculture, crops, markets, and youth in farming. Keep answers short and helpful."}]},
+                {role: "model", parts: [{text: "Hello! I'm AgriBot. Ask me anything about farming in Lesotho!"}]}
+            ];
+
             // Toggle chatbot visibility
             function toggleChatbot() {
                 const modal = document.getElementById('chatbot-modal');
@@ -1517,81 +1336,125 @@
                 document.getElementById('chatbot-modal').style.display = 'none';
             }
 
-            // Send message to AI servlet
+            // Send message to Gemini API
             async function sendMessage() {
                 const input = document.getElementById('chat-input-text');
                 const message = input.value.trim();
-                if (message === '')
-                    return;
+                if (!message) return;
 
-                addMessage(message, 'user');
+                // Add user message
+                addMessage(message, 'user', 'You');
                 input.value = '';
 
                 // Show typing indicator
                 const typingId = 'typing-' + Date.now();
-                addMessage('<i class="fas fa-circle-notch fa-spin"></i> AgriBot is thinking...', 'bot-typing', typingId);
+                showTypingIndicator(typingId);
+
+                chatHistory.push({role: "user", parts: [{text: message}]});
 
                 try {
-                    const response = await fetch('ChatServlet', {
+                    console.log("Sending to:", GEMINI_API_URL);
+
+                    const response = await fetch(GEMINI_API_URL, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: 'message=' + encodeURIComponent(message)
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Referer': window.location.href
+                        },
+                        body: JSON.stringify({
+                            contents: chatHistory,
+                            generationConfig: {
+                                temperature: 0.7,
+                                maxOutputTokens: 256
+                            }
+                        })
                     });
 
-                    const data = await response.json();
-
-                    // Remove typing indicator
-                    const typingElem = document.getElementById(typingId);
-                    if (typingElem)
-                        typingElem.remove();
-
-                    if (data.reply) {
-                        addMessage(data.reply, 'bot');
-                    } else if (data.error) {
-                        addMessage('⚠️ ' + data.error, 'bot');
-                    } else {
-                        addMessage('Sorry, I encountered an issue. Please try again!', 'bot');
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errText}`);
                     }
 
+                    const data = await response.json();
+                    const reply = data.candidates[0].content.parts[0].text;
+
+                    // Remove typing indicator
+                    removeTypingIndicator(typingId);
+                    
+                    // Add bot message
+                    addMessage(reply, 'bot', 'AgriBot');
+                    chatHistory.push({role: "model", parts: [{text: reply}]});
+
                 } catch (err) {
-                    console.error('Chatbot error:', err);
-                    const typingElem = document.getElementById(typingId);
-                    if (typingElem)
-                        typingElem.remove();
-                    addMessage('❌ Unable to connect to Agribot. Please check your internet connection and try again.', 'bot');
+                    console.error('Full Gemini Error:', err);
+                    removeTypingIndicator(typingId);
+                    addMessage(`Error: ${err.message}`, 'bot', 'AgriBot');
                 }
             }
 
-            // Updated addMessage function with ID support
-            function addMessage(text, sender, id = null) {
+            function addMessage(text, type, sender) {
                 const chatWindow = document.getElementById('chat-window');
-                const messageDiv = document.createElement('div');
-
-                if (id) {
-                    messageDiv.id = id;
-                }
-
-                if (sender === 'bot-typing') {
-                    messageDiv.className = 'chat-message chat-bot-typing';
-                    messageDiv.innerHTML = text;
-                } else if (sender === 'bot') {
-                    messageDiv.className = 'chat-message chat-bot';
-                    messageDiv.innerHTML = `<strong>AgriBot:</strong> ${text}`;
-                } else {
-                    messageDiv.className = 'chat-message chat-user';
-                    messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
-                }
-
-                chatWindow.appendChild(messageDiv);
+                const messageContainer = document.createElement('div');
+                messageContainer.className = `message-container message-${type}`;
+                
+                const messageBubble = document.createElement('div');
+                messageBubble.className = 'message-bubble';
+                messageBubble.textContent = text;
+                
+                const senderElement = document.createElement('div');
+                senderElement.className = 'message-sender';
+                senderElement.textContent = sender;
+                
+                messageContainer.appendChild(messageBubble);
+                messageContainer.appendChild(senderElement);
+                chatWindow.appendChild(messageContainer);
+                
                 chatWindow.scrollTop = chatWindow.scrollHeight;
             }
 
-            // Press Enter to send
-            document.addEventListener('DOMContentLoaded', () => {
-                document.getElementById('chat-input-text').addEventListener('keypress', function (e) {
-                    if (e.key === 'Enter')
-                        sendMessage();
-                });
+            function showTypingIndicator(id) {
+                const chatWindow = document.getElementById('chat-window');
+                const typingContainer = document.createElement('div');
+                typingContainer.className = 'typing-indicator';
+                typingContainer.id = id;
+                
+                typingContainer.innerHTML = `
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <span style="margin-left: 8px; color: #666; font-size: 0.9rem;">AgriBot is typing...</span>
+                `;
+                
+                chatWindow.appendChild(typingContainer);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            function removeTypingIndicator(id) {
+                const typingElement = document.getElementById(id);
+                if (typingElement) {
+                    typingElement.remove();
+                }
+            }
+
+            // Press Enter to send message
+            document.getElementById('chat-input-text').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Close chatbot when clicking outside
+            document.addEventListener('click', function (e) {
+                const chatbotModal = document.getElementById('chatbot-modal');
+                const chatbotButton = document.getElementById('chatbot-button');
+                
+                if (chatbotModal.style.display === 'flex' && 
+                    !chatbotModal.contains(e.target) && 
+                    !chatbotButton.contains(e.target)) {
+                    closeChatbot();
+                }
             });
         </script>
 
