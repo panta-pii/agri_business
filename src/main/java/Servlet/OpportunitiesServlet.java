@@ -8,88 +8,76 @@ import javax.servlet.annotation.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 
 @WebServlet("/OpportunitiesServlet")
 public class OpportunitiesServlet extends HttpServlet {
-
     private OpportunityDAO opportunityDAO;
-    private static final Logger logger = Logger.getLogger(OpportunitiesServlet.class.getName());
 
     @Override
     public void init() throws ServletException {
-        try {
-            opportunityDAO = new OpportunityDAO();
-            logger.info("OpportunitiesServlet initialized successfully");
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Failed to initialize OpportunitiesServlet", e);
-            throw new ServletException("Failed to initialize OpportunitiesServlet", e);
-        }
+        opportunityDAO = new OpportunityDAO();
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
-        String search = request.getParameter("search");
-    String category = request.getParameter("category");
-    String type = request.getParameter("type");
+        System.out.println("=== OPPORTUNITIES SERVLET CALLED ===");
+        
+        try {
+            // Get parameters
+            String search = request.getParameter("search");
+            String category = request.getParameter("category");
+            String type = request.getParameter("type");
 
-    logger.info("Processing opportunities request - Search: " + search + 
-               ", Category: " + category + ", Type: " + type);
+            System.out.println("Parameters - Search: " + search + ", Category: " + category + ", Type: " + type);
 
-    List<Opportunity> filteredOpportunities = new ArrayList<>();
-    String errorMessage = null;
+            List<Opportunity> opportunities;
 
-    try {
-        if ((search != null && !search.trim().isEmpty()) || 
-            (category != null && !category.trim().isEmpty()) || 
-            (type != null && !type.trim().isEmpty())) {
-            
-            filteredOpportunities = opportunityDAO.getFilteredOpportunities(search, category, type);
-            logger.info("Filtered: " + filteredOpportunities.size() + " opportunities");
-            
-        } else {
-            List<Opportunity> allOpportunities = opportunityDAO.getAllOpportunities();
-            for (Opportunity opp : allOpportunities) {
-                if (opp != null && "ACTIVE".equals(opp.getStatus())) {
-                    filteredOpportunities.add(opp);
+            // Use filtered opportunities if any filter is applied
+            if ((search != null && !search.trim().isEmpty()) || 
+                (category != null && !category.trim().isEmpty()) || 
+                (type != null && !type.trim().isEmpty())) {
+                
+                opportunities = opportunityDAO.getFilteredOpportunities(search, category, type);
+                System.out.println("Using FILTERED opportunities: " + opportunities.size());
+                
+            } else {
+                // Get all active opportunities
+                opportunities = opportunityDAO.getAllOpportunities();
+                // Filter only active opportunities
+                List<Opportunity> activeOpportunities = new ArrayList<>();
+                for (Opportunity opp : opportunities) {
+                    if (opp != null && "ACTIVE".equals(opp.getStatus())) {
+                        activeOpportunities.add(opp);
+                    }
                 }
+                opportunities = activeOpportunities;
+                System.out.println("Using ALL ACTIVE opportunities: " + opportunities.size());
             }
-            logger.info("All active: " + filteredOpportunities.size() + " opportunities");
-        }
 
-    } catch (Exception e) {
-        logger.log(Level.SEVERE, "Error fetching opportunities", e);
-        errorMessage = "Unable to load opportunities. Please try again later.";
-        filteredOpportunities = new ArrayList<>();
-    }
+            // Set attributes for JSP
+            request.setAttribute("opportunities", opportunities);
+            request.setAttribute("searchQuery", search);
+            request.setAttribute("categoryFilter", category);
+            request.setAttribute("typeFilter", type);
 
-    // Always forward — even on error
-    request.setAttribute("opportunities", filteredOpportunities);
-    request.setAttribute("searchQuery", search);
-    request.setAttribute("categoryFilter", category);
-    request.setAttribute("typeFilter", type);
-    if (errorMessage != null) {
-        request.setAttribute("errorMessage", errorMessage);
-    }
+            System.out.println("Forwarding to opportunities.jsp with " + opportunities.size() + " opportunities");
 
-    RequestDispatcher dispatcher = request.getRequestDispatcher("/opportunities.jsp");
-    dispatcher.forward(request, response);
-        }
-    
-    @Override
-    public void destroy() {
-        // Clean up resources if needed
-        if (opportunityDAO != null) {
-            try {
-                // Add any cleanup logic for OpportunityDAO if needed
-                logger.info("OpportunitiesServlet destroyed");
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Error during OpportunitiesServlet destruction", e);
-            }
+            // Forward to JSP
+            RequestDispatcher dispatcher = request.getRequestDispatcher("/opportunities.jsp");
+            dispatcher.forward(request, response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("ERROR in OpportunitiesServlet: " + e.getMessage());
+            
+            // On error, still forward but with empty list
+            request.setAttribute("opportunities", new ArrayList<Opportunity>());
+            request.setAttribute("errorMessage", "Unable to load opportunities. Please try again.");
+            
+            RequestDispatcher dispatcher = request.getRequestDispatcher("/opportunities.jsp");
+            dispatcher.forward(request, response);
         }
     }
 }
