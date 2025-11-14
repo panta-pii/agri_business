@@ -812,6 +812,9 @@
         </div>
 
         <footer class="bg-dark text-white py-4 mt-5 text-center">
+             <a class="btn btn-outline-light nav-button" href="about.jsp">
+                            <i class="fas fa-infomation"></i> About Us 
+                        </a>
             <p class="mb-0">© 2025 AgriYouth Marketplace. All rights reserved.</p>
         </footer>
 
